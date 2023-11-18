@@ -14,23 +14,23 @@ using cd = complex<double>;
 
 //CHANGE START HERE
 void calc_new_input(*new_input){
-actual_red = ((pol.size/2) / (pol.size/numthread)) / 2 //quantità di passaggi che effettuiamo in sequenziale.
-red = 1 //reduzione calcolata fin'ora
-index[] = {0, 2, 1, 3}
-while (red < actual_red){
-size = index.size();
-  for i=0; i<size(); i++{
-    index[i] *= 2
+  actual_red = log(pol.size) - log(numthreads) //quantità di passaggi che effettuiamo in sequenziale ( log ikn base 2 della lunghezza - log in base 2 del numero di thread)
+  red = 1 //reduzione calcolata fin'ora
+  index[] = {0, 2, 1, 3}
+  while (red < actual_red){
+  size = index.size();
+    for i=0; i<size(); i++{
+      index[i] *= 2
+    }
+    index.append(index[])
+    for (i=size; i<index.size(); i++){
+      index[i] +=   1;
+    }
+  red++;
   }
-  index.append(index[])
-  for (i=size; i<index.size(); i++){
-    index[i] +=   1;
+  for (i=0; i< index.size(); i++){
+    new_input[i] = pol[index[i]];
   }
-red++;
-}
-for (i=0; i< index.size(); i++){
-  new_input[i] = pol[index[i]];
-}
 //CHANGE STOP HERE
 
 void calc_const(*w, *wn, *n, passage, invert){
@@ -41,7 +41,7 @@ void calc_const(*w, *wn, *n, passage, invert){
 
 
 int main(){
-    passage = 1; //variabile per tenere traccia del numero di passaggi, ogni thread ne ha una
+    passage = log(pol.size) - log(numthreads); //variabile per tenere traccia del numero di passaggi, ogni thread ne ha una
     pol[] = read_from_memory(input.txt) //leggere dalla memoria condivisa l'input e memorizzarlo in un array
     id = thread_num() // id = numero del thread
     numthread == ### //numero di thread richiesti al cluster (modificabile) -> idealmente lunghezza array / 2
@@ -56,8 +56,6 @@ int main(){
     fft(new_input) sequenziale
 //CHANGE STOP HERE --> controllare se funziona con input piccoli
 //necessità la versione sequenziale, probabilmente quella ricorsiva
-
-
   
     while (n <= pol.size()){ // continua finchè non hai finito, ovvero in un thread hai tutti i risultati parziali
             for (i=0; 2*i < n; i++){
