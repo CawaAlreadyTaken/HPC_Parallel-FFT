@@ -19,22 +19,6 @@ void calc_const(*w, *wn, *n, passage, invert){
 }
 
 
-void fft(vector<cd> & a, bool invert) {
-    int n = a.size();
-
-
-    
-    for (int i = 0; 2 * i < n; i++) {
-        a[i] = a0[i] + w * a1[i];
-        a[i + n/2] = a0[i] - w * a1[i];
-        if (invert) {
-            a[i] /= 2;
-            a[i + n/2] /= 2;
-        }
-        w *= wn;
-    }
-}
-
 int main(){
     passage = 1; //variabile per tenere traccia del numero di passaggi, ogni thread ne ha una
     pol[] = read_from_memory(input.txt) //leggere dalla memoria condivisa l'input e memorizzarlo in un array
