@@ -1,0 +1,77 @@
+/*primo modello dell'invio dei dati (codice non utilizzabile):
+
+TO DO:
+ridurre il numero di thread utilizzati ad un numero possibile (ora ne chiama metà della lunghezza dell'array di input)
+ogni passaggio metà dei thread diventano inutili
+
+Controllare se l'agoritmo funziona su array piccoli prima di provare ottimizzazioni (es: lunghezzza 16/32)
+
+*/
+
+const double PI = acos(-1);
+using cd = complex<double>;
+
+
+void calc_const(*w, *wn, *n, passage, invert){
+    n = 2^passage;
+    double ang = 2 * PI / n * (invert ? -1 : 1);
+    w(1), wn(cos(ang), sin(ang));
+}
+
+
+void fft(vector<cd> & a, bool invert) {
+    int n = a.size();
+
+
+    
+    for (int i = 0; 2 * i < n; i++) {
+        a[i] = a0[i] + w * a1[i];
+        a[i + n/2] = a0[i] - w * a1[i];
+        if (invert) {
+            a[i] /= 2;
+            a[i + n/2] /= 2;
+        }
+        w *= wn;
+    }
+}
+
+int main(){
+    passage = 1; //variabile per tenere traccia del numero di passaggi, ogni thread ne ha una
+    pol[] = read_from_memory(input.txt) //leggere dalla memoria condivisa l'input e memorizzarlo in un array
+    id = thread_num() // id = numero del thread
+    numthread == ### //numero di thread richiesti al cluster (modificabile) -> idealmente lunghezza array / 2
+    n = 2^passage
+    a[] = new array() // array di numeri complessi
+    while (n <= pol.size()){ // continua finchè non hai finito, ovvero in un thread hai tutti i risultati parziali
+        if (passage == 0){
+            a[0] = pol[id] + w*pol[id+numthread];
+            a[1] = pol[1] - w*pol[id+numthread];
+            if (invert) {
+                a[0] /= 2;
+                a[1] /= 2;
+            }
+        }else{
+            for (i=0; 2*i < n; i++){
+                a[i] = a[i] + w * prec[i];
+                a[i+n/2] = a[i] - w* prec[i]
+                if (invert) {
+                    a[i] /= 2;
+                    a[i + n/2] /= 2;
+                }
+                w *= wn
+            }
+
+            if (id >= numthread/n ){
+                send to id - (numthread/n) a[] as prec[] //invia al thread il tuo risultato come array
+                stop_thread() // queso thread ha smesso di fare quello che deve fare
+            }else{
+                receive prec[] //aspetta il risultato da un altro thread
+            }
+            calc_const();
+        }
+    }
+
+    // a[] dovrebbe contenere il risultato finale
+
+    return 0;
+}
