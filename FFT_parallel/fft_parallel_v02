@@ -20,11 +20,13 @@ void calc_new_input(*new_input){
   while (red < actual_red){
   size = index.size();
     for i=0; i<size(); i++{
-      index[i] *= 2
+      index[i] *= 2;
+      index[i] += id;
     }
     index.append(index[])
     for (i=size; i<index.size(); i++){
       index[i] +=   1;
+      index[i] += id;
     }
   red++;
   }
