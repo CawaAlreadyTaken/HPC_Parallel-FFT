@@ -4,6 +4,8 @@
 #include <time.h>
 
 const double PI = acos(-1);
+const int PRINTING_OUTPUT = 0;
+const int PRINTING_TIME = 1;
 
 typedef struct {
     double real;
@@ -87,26 +89,60 @@ void fft(complex *a, int n, int invert) {
 }
 
 int main() {
+    // Timers declaration for measuring time
+    clock_t start, end;
+
+    // Opening file for writing time results
+    FILE *file = fopen("timing_serial_solver_0.txt", "w");
+
+    // Reading input size
     int n;
     scanf("%d", &n);
 
+    start = clock();
+
+    // Allocating memory for input array
     complex *a = malloc(n * sizeof(complex));
 
-    srand(time(NULL));
+    // Reading input array
     for (int i = 0; i < n; i++) {
-        //a[i].real = (double)rand() / RAND_MAX * 2.0 - 1.0;
-        //a[i].imag = (double)rand() / RAND_MAX * 2.0 - 1.0;
         scanf("%lf", &a[i].real);
         a[i].imag = 0;
     }
 
-    fft(a, n, 0);
-
-    printf("FFT result:\n");
-    for (int i = 0; i < n; i++) {
-        printf("(%f, %f)\n", a[i].real, a[i].imag);
+    end = clock();
+    if (PRINTING_TIME) {
+        fprintf(file, "Time for allocating memory and reading input: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
     }
 
+    start = clock();
+
+    // Calling serial FFT function
+    fft(a, n, 0);
+
+    end = clock();
+    if (PRINTING_TIME) {
+        fprintf(file, "Time for FFT: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+    }
+
+    if (PRINTING_OUTPUT) {
+        start = clock();
+
+        printf("FFT result:\n");
+        for (int i = 0; i < n; i++) {
+            printf("(%f, %f)\n", a[i].real, a[i].imag);
+        }
+
+        end = clock();
+        if (PRINTING_TIME) {
+            fprintf(file, "Time for printing output: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+        }
+    }
+
+    // Close file
+    fclose(file);
+
+    // Freeing memory
     free(a);
     return 0;
 }
