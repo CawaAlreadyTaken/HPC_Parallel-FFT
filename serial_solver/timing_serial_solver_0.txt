@@ -1,2 +1,0 @@
-Time for allocating memory and reading input: 3.090205 seconds
-Time for FFT: 14.370356 seconds
