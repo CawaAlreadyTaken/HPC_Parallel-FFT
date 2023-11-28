@@ -128,14 +128,14 @@ int main(int argc, char* argv[]) {
         // Opening file for writing time results
 	const char *timings_file_name = "timing_parallel_solver_0.txt";
 	int timings_file_length = strlen(argv[1]) + strlen(timings_file_name) + 1;
-	char full_timings_file = (char *)malloc(timings_file_length);
+	char *full_timings_file = (char *)malloc(timings_file_length);
 	strcpy(full_timings_file, argv[1]);
 	strcat(full_timings_file, timings_file_name);
         FILE *timings_file = fopen(full_timings_file, "w");
         // Opening file for reading input
 	const char *input_file_name = "input.txt";
 	int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
-	char full_input_file = (char *)malloc(input_file_length);
+	char *full_input_file = (char *)malloc(input_file_length);
 	strcpy(full_input_file, argv[1]);
 	strcat(full_input_file, input_file_name);
         FILE *input_file = fopen(full_input_file, "r");
