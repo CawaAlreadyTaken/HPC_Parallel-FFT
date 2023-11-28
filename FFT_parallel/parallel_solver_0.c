@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <mpi.h>
 
@@ -104,7 +105,14 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
 
 }
 
-int main(void) {
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+	printf("Usage: %s <WORK_DIR>", argv[0]);
+	printf("Example: %s ./", argv[0]);
+	return 1;
+    }
+
+
     int comm_sz;
     int my_rank;
 
@@ -116,16 +124,27 @@ int main(void) {
     clock_t start, end;
     
     if (my_rank == 0) {
+	
         // Opening file for writing time results
-        FILE *timings_file = fopen("timing_parallel_solver_0.txt", "w");
+	const char *timings_file_name = "timing_parallel_solver_0.txt";
+	int timings_file_length = strlen(argv[1]) + strlen(timings_file_name) + 1;
+	char full_timings_file = (char *)malloc(timings_file_length);
+	strcpy(full_timings_file, argv[1]);
+	strcat(full_timings_file, timings_file_name);
+        FILE *timings_file = fopen(full_timings_file, "w");
         // Opening file for reading input
-        FILE *input_file = fopen("input.txt", "r");
+	const char *input_file_name = "input.txt";
+	int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
+	char full_input_file = (char *)malloc(input_file_length);
+	strcpy(full_input_file, argv[1]);
+	strcat(full_input_file, input_file_name);
+        FILE *input_file = fopen(full_input_file, "r");
         if (timings_file == NULL) {
-            perror("Error creating timing_parallel_solver_0.txt file.");
+            perror("Error creating %s file", full_timings_file);
             return 1;
         }
         if (input_file == NULL) {
-            perror("Error opening input.txt file.");
+            perror("Error opening %s file", full_input_file);
             return 1;
         }
 
