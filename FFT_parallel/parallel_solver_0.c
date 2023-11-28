@@ -140,11 +140,13 @@ int main(int argc, char* argv[]) {
 	strcat(full_input_file, input_file_name);
         FILE *input_file = fopen(full_input_file, "r");
         if (timings_file == NULL) {
-            perror("Error creating %s file", full_timings_file);
+	    fprintf(stderr, "Timings file was: %s\n", full_timings_file);
+            perror("Error creating timings file");
             return 1;
         }
         if (input_file == NULL) {
-            perror("Error opening %s file", full_input_file);
+	    fprintf(stderr, "Input file was: %s\n", full_input_file);
+            perror("Error opening input file");
             return 1;
         }
 
