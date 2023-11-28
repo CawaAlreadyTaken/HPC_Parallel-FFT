@@ -15,7 +15,8 @@ typedef struct {
 
 int reverse(int num, int lg_n) {
     int res = 0;
-    for (int i = 0; i < lg_n; i++) {
+    int i;
+    for (i = 0; i < lg_n; i++) {
         if (num & (1 << i))
             res |= 1 << (lg_n - 1 - i);
     }
@@ -72,13 +73,16 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
     printf("number_of_cycles = %d\n", number_of_cycles);
 
     // Partial fft for the cycles for which we don't need to exchange data
-    for (int len = 2; len <= n && number_of_cycles--; len <<= 1) {
+    int len;
+    for (len = 2; len <= n && number_of_cycles--; len <<= 1) {
         printf("partial number_of_cycles = %d\n", number_of_cycles);
         double ang = 2*PI / len * (invert ? -1 : 1);
         complex wlen = complex_from_polar(1.0, ang);
-        for (int i = my_start; i < my_end; i += len) {
+	int i;
+        for (i = my_start; i < my_end; i += len) {
             complex w = {1.0, 0.0};
-            for (int j = 0; j < len / 2; j++) {
+	    int j;
+            for (j = 0; j < len / 2; j++) {
                 complex u = a[i + j];
                 complex v = mul(a[i + j + len / 2], w);
                 a[i + j] = add(u, v);
@@ -90,7 +94,8 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
 
     /* Only do this ad the end of fft, not when partial
     if (invert) {
-        for (int i = my_start; i < my_end; i++) {
+    	int i;
+        for (i = my_start; i < my_end; i++) {
             a[i].real /= n;
             a[i].imag /= n;
         }
@@ -134,7 +139,8 @@ int main(void) {
         complex *a = malloc(n * sizeof(complex));
 
         // Reading input array
-        for (int i = 0; i < n; i++) {
+	int i;
+        for (i = 0; i < n; i++) {
             fscanf(input_file, "%lf", &a[i].real);
             a[i].imag = 0;
         }
@@ -153,7 +159,7 @@ int main(void) {
         while ((1 << lg_n) < n)
             lg_n++;
 
-        for (int i = 0; i < n; i++) {
+        for (i = 0; i < n; i++) {
             if (i < reverse(i, lg_n))
                 swap(&a[i], &a[reverse(i, lg_n)]);
         }
