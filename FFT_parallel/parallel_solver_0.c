@@ -71,12 +71,10 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
 
     // This is the number of cycles for which we don't need to exchange data
     int number_of_cycles = lg_n - lg_comm_sz;
-    printf("number_of_cycles = %d\n", number_of_cycles);
 
     // Partial fft for the cycles for which we don't need to exchange data
     int len;
     for (len = 2; len <= n && number_of_cycles--; len <<= 1) {
-        printf("partial number_of_cycles = %d\n", number_of_cycles);
         double ang = 2*PI / len * (invert ? -1 : 1);
         complex wlen = complex_from_polar(1.0, ang);
 	int i;
@@ -190,15 +188,29 @@ int main(int argc, char* argv[]) {
             fprintf(timings_file, "Time for reordering the input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
 
+        start = clock();
+
         //Broadcast n
         MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         //Broadcast the array a
         MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
+        end = clock();
+
+        if (PRINTING_TIME) {
+            fprintf(timings_file, "Time for broadcasting the input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+        }
+
+	start = clock();
+
         //Solve my data
         partial_fft(a, n, my_rank, comm_sz, lg_n, 0);
 
+	end = clock();
+        if (PRINTING_TIME) {
+            fprintf(timings_file, "Time for calculating the partial fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+        }
 
         //Print my result
 
