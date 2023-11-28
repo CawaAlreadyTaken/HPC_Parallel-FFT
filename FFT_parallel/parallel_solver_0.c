@@ -84,8 +84,10 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
             for (j = 0; j < len / 2; j++) {
                 complex u = a[i + j];
                 complex v = mul(a[i + j + len / 2], w);
+		/*
 		if (!my_rank)
 			printf("i+j = %d, i+j+len/2 = %d\n", i+j, i+j+len/2);
+		*/
                 a[i + j] = add(u, v);
                 a[i + j + len / 2] = sub(u, v);
                 w = mul(w, wlen);
@@ -132,7 +134,7 @@ int main(int argc, char* argv[]) {
 	strcat(full_timings_file, timings_file_name);
         FILE *timings_file = fopen(full_timings_file, "w");
         // Opening file for reading input
-	const char *input_file_name = "../dataset/data/dataset_0_1.txt";
+	const char *input_file_name = "../dataset/data/dataset_0_2.txt";
 	int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 	char *full_input_file = (char *)malloc(input_file_length);
 	strcpy(full_input_file, argv[1]);
