@@ -84,6 +84,8 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
             for (j = 0; j < len / 2; j++) {
                 complex u = a[i + j];
                 complex v = mul(a[i + j + len / 2], w);
+		if (!my_rank)
+			printf("i+j = %d, i+j+len/2 = %d\n", i+j, i+j+len/2);
                 a[i + j] = add(u, v);
                 a[i + j + len / 2] = sub(u, v);
                 w = mul(w, wlen);
