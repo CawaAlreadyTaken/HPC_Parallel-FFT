@@ -64,10 +64,6 @@ void fft(complex *a, int n, int invert) {
         if (i < reverse(i, lg_n))
             swap(&a[i], &a[reverse(i, lg_n)]);
     }
-    for (int i = 0; i < n; i++) {
-        printf("%d ", (int)a[i].real);
-    }
-    printf("\n\n");
 
     for (int len = 2; len <= n; len <<= 1) {
         double ang = 2 * PI / len * (invert ? -1 : 1);
@@ -75,14 +71,12 @@ void fft(complex *a, int n, int invert) {
         for (int i = 0; i < n; i += len) {
             complex w = {1.0, 0.0};
             for (int j = 0; j < len / 2; j++) {
-                printf("%d, %d\n", i+j, i+j+len/2);
                 complex u = a[i + j];
                 complex v = mul(a[i + j + len / 2], w);
                 a[i + j] = add(u, v);
                 a[i + j + len / 2] = sub(u, v);
                 w = mul(w, wlen);
             }
-            printf("\n");
         }
     }
 
