@@ -106,13 +106,6 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-	printf("Usage: %s <WORK_DIR>", argv[0]);
-	printf("Example: %s ./", argv[0]);
-	return 1;
-    }
-
-
     int comm_sz;
     int my_rank;
 
@@ -124,6 +117,12 @@ int main(int argc, char* argv[]) {
     clock_t start, end;
     
     if (my_rank == 0) {
+	// We need to know the working directory
+	if (argc != 2) {
+	    printf("Usage: %s <WORK_DIR>\n", argv[0]);
+	    printf("Example: %s ./\n", argv[0]);
+	    return 1;
+	}
 	
         // Opening file for writing time results
 	const char *timings_file_name = "timing_parallel_solver_0.txt";
