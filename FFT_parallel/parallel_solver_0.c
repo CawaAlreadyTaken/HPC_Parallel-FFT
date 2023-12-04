@@ -14,6 +14,11 @@ typedef struct {
     double imag;
 } complex;
 
+typedef struct {
+    complex value;
+    int index;
+} send_tuple;
+
 int reverse(int num, int lg_n) {
     int res = 0;
     int i;
@@ -70,11 +75,18 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
         lg_comm_sz++;
 
     // This is the number of cycles for which we don't need to exchange data
-    int number_of_cycles = lg_n - lg_comm_sz;
+    int no_exchange = lg_n - lg_comm_sz;
+
+    //This is a counter for th cycle we are inside
+    int cycles = 1
 
     // Partial fft for the cycles for which we don't need to exchange data
     int len;
-    for (len = 2; len <= n && number_of_cycles--; len <<= 1) {
+    complex *a = malloc(n * sizeof(complex));
+    send_tuple *to_send = malloc(2 * my_size* sizeof(send_tuple)); //data to send to other thred --> data modified in this cycle !!CHECK LENGHT!!
+    int send_index = 0;
+    for (len = 2; len <= n; len <<= 1) {
+        to_send = {};
         double ang = 2*PI / len * (invert ? -1 : 1);
         complex wlen = complex_from_polar(1.0, ang);
 	int i;
@@ -84,6 +96,7 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
             for (j = 0; j < len / 2; j++) {
                 complex u = a[i + j];
                 complex v = mul(a[i + j + len / 2], w);
+
 		/*
 		if (!my_rank)
 			printf("i+j = %d, i+j+len/2 = %d\n", i+j, i+j+len/2);
@@ -91,11 +104,49 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
                 a[i + j] = add(u, v);
                 a[i + j + len / 2] = sub(u, v);
                 w = mul(w, wlen);
+
+                //all data modified by this cycles are saved to be send if necessary
+                to_send[send_index].value = a[i+j];
+                to_send[send_index].index = i+j;
+                send_index++;
+                to_send[send_index].value = a[i+j + (len / 2)];
+                to_send[send_index].index = i+j + (len/2);
+                send_index++;
+
+            }
+        }
+
+        //CHANGE START HERE - Check if the next cycle need communication
+        int exchange_cycle = cycles - no_exchange; //calculate the exchange cycle number
+        if (exchange_cycle >= 0){
+            int distance = pow(2,exchange_cycle); //distance between thread that will communicate with each other
+            if ((my_rank / distance)% 2 == 0){
+                //INSERT SEND CODE HERE
+                // send_to (rank my_rank + distance) to_send   --> send array
+                // send_to (rank my_rank + distance) send_index  --> send index (to calculate length of useful data)
+            }else{
+                //INSERT SEND CODE HERE
+                // send_to (rank my_rank - distance) to_send  --> send array
+                // send_to (rank my_rank - distance) send_index --> send index (to calculate length of useful data)
+                //send 
+            }
+            //after sending wait to receive some data
+            // data =  MPI_recv
+            send_tuple received[] = {}; // suppose this is the received array
+            int received_index = 0; // suppose this is the received send_index
+            received_index--;
+            int x;
+            int a_index;
+            complex a_value;
+            for (x=0; x<received_index; x++){
+                a_value = received[x].value;
+                a_index = received[x].index;
+                a[a_index] = a_value;
             }
         }
     }
 
-    /* Only do this ad the end of fft, not when partial
+    //Only do this ad the end of fft, not when partial
     if (invert) {
     	int i;
         for (i = my_start; i < my_end; i++) {
@@ -103,7 +154,7 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
             a[i].imag /= n;
         }
     }
-    */
+    
 
 }
 
