@@ -5,6 +5,14 @@
 #include <time.h>
 #include <mpi.h>
 
+/*
+
+TO DO: 
+DEFINE DATATYPE with array of tuple and max index used
+check send and receive
+
+*/
+
 const double PI = acos(-1);
 const int PRINTING_OUTPUT = 0;
 const int PRINTING_TIME = 1;
@@ -123,17 +131,20 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
             if ((my_rank / distance)% 2 == 0){
                 //INSERT SEND CODE HERE
                 // send_to (rank my_rank + distance) to_send   --> send array
+
+                // MPI_Isend(*to_send, (send_index-1), datatype, (myrank + distance), 0, comm)
+
                 // send_to (rank my_rank + distance) send_index  --> send index (to calculate length of useful data)
             }else{
                 //INSERT SEND CODE HERE
                 // send_to (rank my_rank - distance) to_send  --> send array
                 // send_to (rank my_rank - distance) send_index --> send index (to calculate length of useful data)
-                //send 
+                // MPI_Isend(*to_send, (send_index-1), datatype, (myrank + distance), 0, comm)
             }
-            //after sending wait to receive some data
-            // data =  MPI_recv
-            send_tuple received[] = {}; // suppose this is the received array
+            send_tuple *received = malloc(100 * sizeof(send_tuple)) // suppose this is the received array
             int received_index = 0; // suppose this is the received send_index
+            //after sending wait to receive some data
+            // MPI_receive(received, count, datatype, MPI_ANY_SOURCE)
             received_index--;
             int x;
             int a_index;
