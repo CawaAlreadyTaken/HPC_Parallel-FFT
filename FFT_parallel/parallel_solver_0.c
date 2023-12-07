@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <string.h>
 #include <time.h>
 #include <mpi.h>
@@ -134,8 +135,6 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
             MPI_Wait(&send_request, MPI_STATUS_IGNORE);
 
             int x;
-            int a_index;
-            complex a_value;
             for (x=0; x<my_size; x++){
                 a[received[x].index] = received[x].value;
             }
