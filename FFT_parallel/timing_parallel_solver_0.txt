@@ -1,4 +1,0 @@
-Time for allocating memory and reading input: 3.830000 seconds
-Time for reordering the input array: 6.370000 seconds
-Time for broadcasting the input array: 4.440000 seconds
-Time for calculating the partial fft: 0.510000 seconds

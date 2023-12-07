@@ -6,13 +6,6 @@
 #include <time.h>
 #include <mpi.h>
 
-/*
-
-TO DO: 
-DEFINE DATATYPE with array of tuple and max index used
-
-*/
-
 const double PI = acos(-1);
 const int PRINTING_OUTPUT = 0;
 const int PRINTING_TIME = 1;
@@ -124,15 +117,20 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
             MPI_Request send_request;
 
             if ((my_rank / distance) % 2 == 0){
+		printf("rank: %d, sending to %d\n", my_rank, my_rank + distance);
                 MPI_Isend(to_send, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD, &send_request);
+		printf("rank: %d, sent to %d\n", my_rank, my_rank + distance);
             } else {
+		printf("rank: %d, sending to %d\n", my_rank, my_rank - distance);
                 MPI_Isend(to_send, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD, &send_request);
+		printf("rank: %d, sent to %d\n", my_rank, my_rank - distance);
             }
+
+            MPI_Wait(&send_request, MPI_STATUS_IGNORE);
 
             send_tuple *received = malloc(my_size * sizeof(send_tuple));
             MPI_Recv(received, my_size, mpi_send_tuple_type, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-            MPI_Wait(&send_request, MPI_STATUS_IGNORE);
 
             int x;
             for (x=0; x<my_size; x++){
