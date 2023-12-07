@@ -129,14 +129,14 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
                 //INSERT SEND CODE HERE
                 // send_to (rank my_rank + distance) to_send   --> send array
 
-                // MPI_Isend(*to_send, (send_index-1), datatype, (myrank + distance), 0, comm)
+                // MPI_Isend(*to_send, my_size, datatype, (myrank + distance), 0, comm)
 
                 // send_to (rank my_rank + distance) send_index  --> send index (to calculate length of useful data)
             }else{
                 //INSERT SEND CODE HERE
                 // send_to (rank my_rank - distance) to_send  --> send array
                 // send_to (rank my_rank - distance) send_index --> send index (to calculate length of useful data)
-                // MPI_Isend(*to_send, (send_index-1), datatype, (myrank - distance), 0, comm)
+                // MPI_Isend(*to_send, my_size , datatype, (myrank - distance), 0, comm)
             }
             send_tuple *received = malloc(my_size * sizeof(send_tuple)) // suppose this is the received array
             //after sending wait to receive some data
