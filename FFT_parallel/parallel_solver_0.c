@@ -6,7 +6,6 @@
 #include <time.h>
 #include <mpi.h>
 
-const double PI = acos(-1);
 const int PRINTING_OUTPUT = 0;
 const int PRINTING_TIME = 1;
 MPI_Datatype mpi_send_tuple_type;
@@ -89,7 +88,7 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
     for (len = 2; len <= n; len <<= 1) {
         exchange_cycle = cycles - no_exchange;
         int send_index = 0;
-        double ang = 2*PI / len * (invert ? -1 : 1);
+        double ang = 2*M_PI / len * (invert ? -1 : 1);
         complex wlen = complex_from_polar(1.0, ang);
 	    int i;
         for (i = my_start; i < my_end; i += len) {
@@ -164,7 +163,7 @@ int main(int argc, char* argv[]) {
     // Definizione del tipo di dato MPI per send_tuple
     const int nitems = 2;
     int blocklengths[2] = {1, 1};
-    MPI_Datatype types[2] = {MPI_COMPLEX, MPI_INT};
+    MPI_Datatype types[2] = {MPI_DOUBLE_COMPLEX, MPI_INT};
     MPI_Aint offsets[2];
 
     offsets[0] = offsetof(send_tuple, value);
@@ -205,6 +204,8 @@ int main(int argc, char* argv[]) {
             perror("Error opening input file");
             return 1;
         }
+        free(full_timings_file);
+        free(full_input_file);
 
         // Reading input size
         int n;
