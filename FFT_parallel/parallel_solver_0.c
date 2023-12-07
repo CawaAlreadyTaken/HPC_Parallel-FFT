@@ -15,6 +15,7 @@ DEFINE DATATYPE with array of tuple and max index used
 const double PI = acos(-1);
 const int PRINTING_OUTPUT = 0;
 const int PRINTING_TIME = 1;
+MPI_Datatype mpi_send_tuple_type;
 
 typedef struct {
     double real;
@@ -70,7 +71,7 @@ complex mul(complex a, complex b) {
     return result;
 }
 
-void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int invert) {
+void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int invert) {
     // Calculating my start and end
     int my_start = my_rank * n / comm_sz;
     int my_end = (my_rank + 1) * n / comm_sz; // This is excluded
@@ -85,16 +86,15 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
     int no_exchange = lg_n - lg_comm_sz;
 
     //This is a counter for th cycle we are inside
-    int cycles = 1
+    int cycles = 1;
 
-    // Partial fft for the cycles for which we don't need to exchange data
+    // Parallel fft
     int len;
     send_tuple *to_send = malloc(my_size * sizeof(send_tuple)); //data to send to other thred --> data modified in this cycle !!CHECK LENGHT!!
     int exchange_cycle = 0;
     for (len = 2; len <= n; len <<= 1) {
         exchange_cycle = cycles - no_exchange;
         int send_index = 0;
-        to_send = {};
         double ang = 2*PI / len * (invert ? -1 : 1);
         complex wlen = complex_from_polar(1.0, ang);
 	    int i;
@@ -107,9 +107,6 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
                 a[i + j] = add(u, v);
                 a[i + j + len / 2] = sub(u, v);
                 w = mul(w, wlen);
-
-                //all data modified by this cycles are saved to be send if necessary
-               ; //calculate the exchange cycle number
                 if (exchange_cycle >=0){
                     to_send[send_index].value = a[i+j];
                     to_send[send_index].index = i+j;
@@ -120,40 +117,32 @@ void partial_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inve
                 }
             }
         }
-
-        //CHANGE START HERE - Check if the next cycle need communication
         
         if (exchange_cycle >= 0){
-            int distance = pow(2,exchange_cycle); //distance between thread that will communicate with each other
-            if ((my_rank / distance)% 2 == 0){
-                //INSERT SEND CODE HERE
-                // send_to (rank my_rank + distance) to_send   --> send array
+            int distance = pow(2, exchange_cycle); //distance between thread that will communicate with each other
+            MPI_Request send_request;
 
-                // MPI_Isend(*to_send, my_size, datatype, (myrank + distance), 0, comm)
-
-                // send_to (rank my_rank + distance) send_index  --> send index (to calculate length of useful data)
-            }else{
-                //INSERT SEND CODE HERE
-                // send_to (rank my_rank - distance) to_send  --> send array
-                // send_to (rank my_rank - distance) send_index --> send index (to calculate length of useful data)
-                // MPI_Isend(*to_send, my_size , datatype, (myrank - distance), 0, comm)
+            if ((my_rank / distance) % 2 == 0){
+                MPI_Isend(to_send, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD, &send_request);
+            } else {
+                MPI_Isend(to_send, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD, &send_request);
             }
-            send_tuple *received = malloc(my_size * sizeof(send_tuple)) // suppose this is the received array
-            //after sending wait to receive some data
-            // MPI_receive(received, my_size, datatype, MPI_ANY_SOURCE)
+
+            send_tuple *received = malloc(my_size * sizeof(send_tuple));
+            MPI_Recv(received, my_size, mpi_send_tuple_type, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            MPI_Wait(&send_request, MPI_STATUS_IGNORE);
+
             int x;
             int a_index;
             complex a_value;
             for (x=0; x<my_size; x++){
-                a_value = received[x].value;
-                a_index = received[x].index;
-                a[a_index] = a_value;
+                a[received[x].index] = received[x].value;
             }
         }
         cycles++;
     }
 
-    //Only do this ad the end of fft, not when partial
     if (invert) {
     	int i;
         for (i = my_start; i < my_end; i++) {
@@ -174,6 +163,18 @@ int main(int argc, char* argv[]) {
 
     // Timers declaration for measuring time
     clock_t start, end;
+
+    // Definizione del tipo di dato MPI per send_tuple
+    const int nitems = 2;
+    int blocklengths[2] = {1, 1};
+    MPI_Datatype types[2] = {MPI_COMPLEX, MPI_INT};
+    MPI_Aint offsets[2];
+
+    offsets[0] = offsetof(send_tuple, value);
+    offsets[1] = offsetof(send_tuple, index);
+
+    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &mpi_send_tuple_type);
+    MPI_Type_commit(&mpi_send_tuple_type);
     
     if (my_rank == 0) {
 	// We need to know the working directory
@@ -266,11 +267,11 @@ int main(int argc, char* argv[]) {
 	start = clock();
 
         //Solve my data
-        partial_fft(a, n, my_rank, comm_sz, lg_n, 0);
+        parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
 
 	end = clock();
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for calculating the partial fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for calculating the parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
 
         //Print my result
@@ -295,7 +296,7 @@ int main(int argc, char* argv[]) {
         MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         //Solve my data
-        partial_fft(a, n, my_rank, comm_sz, lg_n, 0);
+        parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
 
 
         //Print my result
@@ -304,6 +305,8 @@ int main(int argc, char* argv[]) {
         //Free memory
         free(a);
     }
+
+    MPI_Type_free(&mpi_send_tuple_type);
 
     MPI_Finalize();
     return 0;
