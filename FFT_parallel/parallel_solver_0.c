@@ -16,7 +16,8 @@ typedef struct {
 } complex;
 
 typedef struct {
-	complex value;
+	double real;
+	double imag;
 	int index;
 } send_tuple;
 
@@ -107,10 +108,12 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 				a[i + j + len / 2] = sub(u, v);
 				w = mul(w, wlen);
 				if (exchange_cycle >=0) {
-					to_send[send_index].value = a[i+j];
+					to_send[send_index].real = a[i+j].real;
+					to_send[send_index].imag = a[i+j].imag;
 					to_send[send_index].index = i+j;
 					send_index++;
-					to_send[send_index].value = a[i+j + (len / 2)];
+					to_send[send_index].real = a[i+j + (len / 2)].real;
+					to_send[send_index].imag = a[i+j + (len / 2)].imag;
 					to_send[send_index].index = i+j + (len/2);
 					send_index++;
 				}
@@ -141,7 +144,8 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 
 			int x;
 			for (x=0; x<my_size; x++){
-				a[received[x].index] = received[x].value;
+				a[received[x].index].real = received[x].real;
+				a[received[x].index].imag = received[x].imag;
 			}
 		}
 		cycles++;
@@ -170,16 +174,24 @@ int main(int argc, char* argv[]) {
 	// Timers declaration for measuring time
 	clock_t start, end;
 
+	send_tuple data;
+
 	// Definizione del tipo di dato MPI per send_tuple
-	const int nitems = 2;
-	int blocklengths[2] = {1, 1};
-	MPI_Datatype types[2] = {MPI_DOUBLE_COMPLEX, MPI_INT};
-	MPI_Aint offsets[2];
+	int blocklengths[3] = {1, 1, 1};
+	MPI_Datatype types[3] = {MPI_DOUBLE, MPI_DOUBLE, MPI_INT};
+	MPI_Aint offsets[3];
 
-	offsets[0] = offsetof(send_tuple, value);
-	offsets[1] = offsetof(send_tuple, index);
+	MPI_Aint baseaddr;
+	MPI_Get_address(&data, &baseaddr);
+	MPI_Get_address(&data.real, &offsets[0]);
+	MPI_Get_address(&data.imag, &offsets[1]);
+	MPI_Get_address(&data.index, &offsets[2]);
 
-	MPI_Type_create_struct(nitems, blocklengths, offsets, types, &mpi_send_tuple_type);
+	offsets[0] = MPI_Aint_diff(offsets[0], baseaddr);
+	offsets[1] = MPI_Aint_diff(offsets[1], baseaddr);
+	offsets[2] = MPI_Aint_diff(offsets[2], baseaddr);
+
+	MPI_Type_create_struct(3, blocklengths, offsets, types, &mpi_send_tuple_type);
 	MPI_Type_commit(&mpi_send_tuple_type);
 
 	if (my_rank == 0) {
