@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -l select=4:ncpus=8:mem=2gb
+#PBS -l select=1:ncpus=2:mem=2gb
 
 #PBS -l walltime=0:01:00
 

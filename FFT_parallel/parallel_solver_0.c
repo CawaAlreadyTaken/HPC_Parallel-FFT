@@ -70,7 +70,6 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 	int my_start = my_rank * n / comm_sz;
 	int my_end = (my_rank + 1) * n / comm_sz; // This is excluded
 	int my_size = my_end - my_start;
-	printf("%d, %d\n", my_size, n);
 
 	// Calculating lg_comm_sz
 	int lg_comm_sz = 0;
@@ -107,6 +106,7 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 				a[i + j] = add(u, v);
 				a[i + j + len / 2] = sub(u, v);
 				w = mul(w, wlen);
+				/*
 				if (exchange_cycle >=0) {
 					to_send[send_index].real = a[i+j].real;
 					to_send[send_index].imag = a[i+j].imag;
@@ -117,9 +117,11 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 					to_send[send_index].index = i+j + (len/2);
 					send_index++;
 				}
+				*/
 			}
 		}
 
+		/*
 		if (exchange_cycle >= 0){
 			int distance = pow(2, exchange_cycle); //distance between thread that will communicate with each other
 
@@ -144,22 +146,25 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 
 			int x;
 			for (x=0; x<my_size; x++){
+				printf("%d -> received index %d\n", my_rank, received[x].index);
 				a[received[x].index].real = received[x].real;
 				a[received[x].index].imag = received[x].imag;
 			}
 		}
+		*/
 		cycles++;
 	}
 	//free(to_send);
 	//free(received);
-
+	
+	/*
 	if (invert) {
 		int i;
 		for (i = my_start; i < my_end; i++) {
 			a[i].real /= n;
 			a[i].imag /= n;
 		}
-	}
+	}*/
 
 }
 
@@ -210,7 +215,7 @@ int main(int argc, char* argv[]) {
 		strcat(full_timings_file, timings_file_name);
 		FILE *timings_file = fopen(full_timings_file, "w");
 		// Opening file for reading input
-		const char *input_file_name = "../dataset/data/dataset_0_1.txt";
+		const char *input_file_name = "../dataset/data/dataset_0_0.txt";
 		int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 		char *full_input_file = (char *)malloc(input_file_length);
 		strcpy(full_input_file, argv[1]);
@@ -306,14 +311,14 @@ int main(int argc, char* argv[]) {
 		int n;
 		MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+		// Receiving the array a
+		complex *a = malloc(n * sizeof(complex));
+		MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+
 		// Calculating lg_n
 		int lg_n = 0;
 		while ((1 << lg_n) < n)
 			lg_n++;
-
-		// Receiving the array a
-		complex *a = malloc(n * sizeof(complex));
-		MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
 		//Solve my data
 		parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
@@ -326,7 +331,7 @@ int main(int argc, char* argv[]) {
 		free(a);
 	}
 
-	MPI_Type_free(&mpi_send_tuple_type);
+	//MPI_Type_free(&mpi_send_tuple_type);
 
 	MPI_Finalize();
 	return 0;
