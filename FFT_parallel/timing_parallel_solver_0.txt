@@ -1,4 +1,4 @@
-Time for allocating memory and reading input: 0.000000 seconds
-Time for reordering the input array: 0.000000 seconds
-Time for broadcasting the input array: 0.000000 seconds
-Time for calculating the parallel fft: 0.000000 seconds
+Time for allocating memory and reading input: 4.270000 seconds
+Time for reordering the input array: 6.210000 seconds
+Time for broadcasting the input array: 0.450000 seconds
+Time for calculating the parallel fft: 6.130000 seconds

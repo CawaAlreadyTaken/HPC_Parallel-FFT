@@ -84,46 +84,67 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 
 	// Parallel fft
 	int len;
-	//send_tuple *to_send = malloc(my_size * sizeof(send_tuple)); //data to send to other thred --> data modified in this cycle !!CHECK LENGHT!!
-	send_tuple to_send[my_size];
-	//send_tuple *received = malloc(my_size * sizeof(send_tuple));
-	send_tuple received[my_size];
+	send_tuple *to_send = malloc(my_size * sizeof(send_tuple));
+	//send_tuple to_send[my_size];
+	send_tuple *received = malloc(my_size * sizeof(send_tuple));
+	//send_tuple received[my_size];
 
-	int exchange_cycle = 0;
+	int exchange_cycle;
 
 	for (len = 2; len <= n; len <<= 1) {
 		exchange_cycle = cycles - no_exchange;
 		int send_index = 0;
 		double ang = 2*M_PI / len * (invert ? -1 : 1);
 		complex wlen = complex_from_polar(1.0, ang);
-		int i;
-		for (i = my_start; i < my_end; i += len) {
-			complex w = {1.0, 0.0};
-			int j;
-			for (j = 0; j < len / 2; j++) {
-				complex u = a[i + j];
-				complex v = mul(a[i + j + len / 2], w);
-				a[i + j] = add(u, v);
-				a[i + j + len / 2] = sub(u, v);
-				w = mul(w, wlen);
-				/*
-				if (exchange_cycle >=0) {
-					to_send[send_index].real = a[i+j].real;
-					to_send[send_index].imag = a[i+j].imag;
-					to_send[send_index].index = i+j;
-					send_index++;
-					to_send[send_index].real = a[i+j + (len / 2)].real;
-					to_send[send_index].imag = a[i+j + (len / 2)].imag;
-					to_send[send_index].index = i+j + (len/2);
-					send_index++;
+		if (exchange_cycle < 0) {
+			int i;
+			for (i = my_start; i < my_end; i += len) {
+				complex w = {1.0, 0.0};
+				int j;
+				for (j = 0; j < len / 2; j++) {
+					//printf("QUI my_rank: %d, cycles: %d, i+j: %d, i+j+len/2: %d\n", my_rank, cycles, i+j, i+j+len/2);
+					complex u = a[i + j];
+					complex v = mul(a[i + j + len / 2], w);
+					a[i + j] = add(u, v);
+					a[i + j + len / 2] = sub(u, v);
+					w = mul(w, wlen);
 				}
-				*/
 			}
-		}
+		} else {
+			int number_of_iterations = 0;
+			int i;
+			for (i = 0; i < n; i += len) {
+				complex w = {1.0, 0.0};
+				int j;
+				for (j = 0; j < len / 2; j++) {
+					if (number_of_iterations >= my_end)
+						break;
+					if (number_of_iterations >= my_start) {
+						//printf("my_rank: %d, cycles: %d, i+j: %d, i+j+len/2: %d\n", my_rank, cycles, i+j, i+j+len/2);
+						complex u = a[i + j];
+						complex v = mul(a[i + j + len / 2], w);
+						a[i + j] = add(u, v);
+						a[i + j + len / 2] = sub(u, v);
+						w = mul(w, wlen);
 
-		/*
-		if (exchange_cycle >= 0){
+						to_send[send_index].real = a[i+j].real;
+						to_send[send_index].imag = a[i+j].imag;
+						to_send[send_index].index = i+j;
+						send_index++;
+						to_send[send_index].real = a[i+j + (len / 2)].real;
+						to_send[send_index].imag = a[i+j + (len / 2)].imag;
+						to_send[send_index].index = i+j + (len/2);
+						send_index++;
+					}
+					number_of_iterations+=2;
+				}
+			}
+
 			int distance = pow(2, exchange_cycle); //distance between thread that will communicate with each other
+
+			// Last cycle we don't have anything to send to others
+			if (len == n)
+				break;
 
 			if ((my_rank / distance) % 2 == 0){
 				printf("rank: %d, receiving from %d\n", my_rank, my_rank + distance);
@@ -146,25 +167,22 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 
 			int x;
 			for (x=0; x<my_size; x++){
-				printf("%d -> received index %d\n", my_rank, received[x].index);
 				a[received[x].index].real = received[x].real;
 				a[received[x].index].imag = received[x].imag;
 			}
 		}
-		*/
 		cycles++;
 	}
-	//free(to_send);
-	//free(received);
+	free(to_send);
+	free(received);
 	
-	/*
 	if (invert) {
 		int i;
 		for (i = my_start; i < my_end; i++) {
 			a[i].real /= n;
 			a[i].imag /= n;
 		}
-	}*/
+	}
 
 }
 
@@ -215,7 +233,7 @@ int main(int argc, char* argv[]) {
 		strcat(full_timings_file, timings_file_name);
 		FILE *timings_file = fopen(full_timings_file, "w");
 		// Opening file for reading input
-		const char *input_file_name = "../dataset/data/dataset_0_0.txt";
+		const char *input_file_name = "../dataset/data/dataset_0_2.txt";
 		int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 		char *full_input_file = (char *)malloc(input_file_length);
 		strcpy(full_input_file, argv[1]);
