@@ -16,8 +16,7 @@ typedef struct {
 } complex;
 
 typedef struct {
-	double real;
-	double imag;
+	complex value;
 	int index;
 } send_tuple;
 
@@ -82,100 +81,101 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 	//This is a counter for th cycle we are inside
 	int cycles = 1;
 
-	// Parallel fft
-	int len;
+	// Allocate memory for the tuples we will send and receive
 	send_tuple *to_send = malloc(my_size * sizeof(send_tuple));
-	//send_tuple to_send[my_size];
 	send_tuple *received = malloc(my_size * sizeof(send_tuple));
-	//send_tuple received[my_size];
 
 	int exchange_cycle;
 
+	// Execute the first log(n)-log(comm_sz) cycles, for which we don't need to exchange data
+	int len;
 	for (len = 2; len <= n; len <<= 1) {
-		exchange_cycle = cycles - no_exchange;
-		int send_index = 0;
 		double ang = 2*M_PI / len * (invert ? -1 : 1);
 		complex wlen = complex_from_polar(1.0, ang);
-		if (exchange_cycle < 0) {
-			int i;
-			for (i = my_start; i < my_end; i += len) {
-				complex w = {1.0, 0.0};
-				int j;
-				for (j = 0; j < len / 2; j++) {
-					//printf("QUI my_rank: %d, cycles: %d, i+j: %d, i+j+len/2: %d\n", my_rank, cycles, i+j, i+j+len/2);
+		if (len > n/comm_sz) break;
+		int i;
+		for (i = my_start; i < my_end; i += len) {
+			complex w = {1.0, 0.0};
+			int j;
+			for (j = 0; j < len / 2; j++) {
+				complex u = a[i + j];
+				complex v = mul(a[i + j + len / 2], w);
+				a[i + j] = add(u, v);
+				a[i + j + len / 2] = sub(u, v);
+				w = mul(w, wlen);
+			}
+		}
+		cycles++;
+	}
+
+	// Execute the last log(comm_sz) cycles, for which we need to exchange data
+	for (len = 2*n/comm_sz; len <= n; len <<= 1) {
+		exchange_cycle = cycles - no_exchange;
+		double ang = 2*M_PI / len * (invert ? -1 : 1);
+		complex wlen = complex_from_polar(1.0, ang);
+		int send_index = 0;
+		int number_of_iterations = 0;
+		int i;
+		for (i = 0; i < n; i += len) {
+			complex w = {1.0, 0.0};
+			int j;
+			for (j = 0; j < len / 2; j++) {
+				if (number_of_iterations >= my_end)
+					break;
+				if (number_of_iterations >= my_start) {
 					complex u = a[i + j];
 					complex v = mul(a[i + j + len / 2], w);
 					a[i + j] = add(u, v);
 					a[i + j + len / 2] = sub(u, v);
 					w = mul(w, wlen);
+
+					to_send[send_index].value = a[i+j];
+					to_send[send_index].index = i+j;
+					send_index++;
+					to_send[send_index].value = a[i+j + (len / 2)];
+					to_send[send_index].index = i+j + (len/2);
+					send_index++;
 				}
+				number_of_iterations+=2;
 			}
+		}
+
+		int distance = pow(2, exchange_cycle); //distance between thread that will communicate with each other
+
+		// Last cycle we don't have anything to send to others
+		if (len == n)
+			break;
+
+		if ((my_rank / distance) % 2 == 0){
+			printf("rank: %d, receiving from %d\n", my_rank, my_rank + distance);
+			MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			printf("rank: %d, received from %d\n", my_rank, my_rank + distance);
+			printf("rank: %d, sending to %d\n", my_rank, my_rank + distance);
+			MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD);
+			printf("rank: %d, sent to %d\n", my_rank, my_rank + distance);
 		} else {
-			int number_of_iterations = 0;
-			int i;
-			for (i = 0; i < n; i += len) {
-				complex w = {1.0, 0.0};
-				int j;
-				for (j = 0; j < len / 2; j++) {
-					if (number_of_iterations >= my_end)
-						break;
-					if (number_of_iterations >= my_start) {
-						//printf("my_rank: %d, cycles: %d, i+j: %d, i+j+len/2: %d\n", my_rank, cycles, i+j, i+j+len/2);
-						complex u = a[i + j];
-						complex v = mul(a[i + j + len / 2], w);
-						a[i + j] = add(u, v);
-						a[i + j + len / 2] = sub(u, v);
-						w = mul(w, wlen);
+			printf("rank: %d, sending to %d\n", my_rank, my_rank - distance);
+			MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD);
+			printf("rank: %d, sent to %d\n", my_rank, my_rank - distance);
+			printf("rank: %d, receiving from %d\n", my_rank, my_rank - distance);
+			MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			printf("rank: %d, received from %d\n", my_rank, my_rank - distance);
+		}
+		printf("rank: %d reached barrier at cycle %d\n", my_rank, exchange_cycle);
+		MPI_Barrier(MPI_COMM_WORLD);
+		printf("rank: %d passed barrier at cycle %d\n", my_rank, exchange_cycle);
 
-						to_send[send_index].real = a[i+j].real;
-						to_send[send_index].imag = a[i+j].imag;
-						to_send[send_index].index = i+j;
-						send_index++;
-						to_send[send_index].real = a[i+j + (len / 2)].real;
-						to_send[send_index].imag = a[i+j + (len / 2)].imag;
-						to_send[send_index].index = i+j + (len/2);
-						send_index++;
-					}
-					number_of_iterations+=2;
-				}
-			}
-
-			int distance = pow(2, exchange_cycle); //distance between thread that will communicate with each other
-
-			// Last cycle we don't have anything to send to others
-			if (len == n)
-				break;
-
-			if ((my_rank / distance) % 2 == 0){
-				printf("rank: %d, receiving from %d\n", my_rank, my_rank + distance);
-				MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				printf("rank: %d, received from %d\n", my_rank, my_rank + distance);
-				printf("rank: %d, sending to %d\n", my_rank, my_rank + distance);
-				MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD);
-				printf("rank: %d, sent to %d\n", my_rank, my_rank + distance);
-			} else {
-				printf("rank: %d, sending to %d\n", my_rank, my_rank - distance);
-				MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD);
-				printf("rank: %d, sent to %d\n", my_rank, my_rank - distance);
-				printf("rank: %d, receiving from %d\n", my_rank, my_rank - distance);
-				MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				printf("rank: %d, received from %d\n", my_rank, my_rank - distance);
-			}
-			printf("rank: %d reached barrier at cycle %d\n", my_rank, exchange_cycle);
-			MPI_Barrier(MPI_COMM_WORLD);
-			printf("rank: %d passed barrier at cycle %d\n", my_rank, exchange_cycle);
-
-			int x;
-			for (x=0; x<my_size; x++){
-				a[received[x].index].real = received[x].real;
-				a[received[x].index].imag = received[x].imag;
-			}
+		int x;
+		for (x=0; x<my_size; x++){
+			a[received[x].index] = received[x].value;
 		}
 		cycles++;
 	}
+
 	free(to_send);
 	free(received);
 	
+	// If needed apply the inverse transform
 	if (invert) {
 		int i;
 		for (i = my_start; i < my_end; i++) {
@@ -199,22 +199,15 @@ int main(int argc, char* argv[]) {
 
 	send_tuple data;
 
-	// Definizione del tipo di dato MPI per send_tuple
-	int blocklengths[3] = {1, 1, 1};
-	MPI_Datatype types[3] = {MPI_DOUBLE, MPI_DOUBLE, MPI_INT};
-	MPI_Aint offsets[3];
+	// MPI new type definition
+	int blocklengths[2] = {1, 1};
+	MPI_Datatype types[2] = {MPI_DOUBLE_COMPLEX, MPI_INT};
+	MPI_Aint offsets[2];
 
-	MPI_Aint baseaddr;
-	MPI_Get_address(&data, &baseaddr);
-	MPI_Get_address(&data.real, &offsets[0]);
-	MPI_Get_address(&data.imag, &offsets[1]);
-	MPI_Get_address(&data.index, &offsets[2]);
+	offsets[0] = offsetof(send_tuple, value);
+	offsets[1] = offsetof(send_tuple, index);
 
-	offsets[0] = MPI_Aint_diff(offsets[0], baseaddr);
-	offsets[1] = MPI_Aint_diff(offsets[1], baseaddr);
-	offsets[2] = MPI_Aint_diff(offsets[2], baseaddr);
-
-	MPI_Type_create_struct(3, blocklengths, offsets, types, &mpi_send_tuple_type);
+	MPI_Type_create_struct(2, blocklengths, offsets, types, &mpi_send_tuple_type);
 	MPI_Type_commit(&mpi_send_tuple_type);
 
 	if (my_rank == 0) {
@@ -282,6 +275,7 @@ int main(int argc, char* argv[]) {
 		while ((1 << lg_n) < n)
 			lg_n++;
 
+		// TODO: check data dependencies
 		for (i = 0; i < n; i++) {
 			if (i < reverse(i, lg_n))
 				swap(&a[i], &a[reverse(i, lg_n)]);
@@ -349,8 +343,7 @@ int main(int argc, char* argv[]) {
 		free(a);
 	}
 
-	//MPI_Type_free(&mpi_send_tuple_type);
-
+	MPI_Type_free(&mpi_send_tuple_type);
 	MPI_Finalize();
 	return 0;
 }
