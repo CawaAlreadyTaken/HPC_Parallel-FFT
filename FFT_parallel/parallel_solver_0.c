@@ -64,7 +64,7 @@ complex mul(complex a, complex b) {
 	return result;
 }
 
-void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int invert) {
+send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int invert) {
 	// Calculating my start and end
 	int my_start = my_rank * n / comm_sz;
 	int my_end = (my_rank + 1) * n / comm_sz; // This is excluded
@@ -143,9 +143,19 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 		int distance = pow(2, exchange_cycle); //distance between thread that will communicate with each other
 
 		// Last cycle we don't have anything to send to others
-		if (len == n)
-			break;
-
+		if (len == n){
+			free(to_send);
+			free(received);
+			// If needed apply the inverse transform
+			if (invert) {
+				int i;
+				for (i = my_start; i < my_end; i++) {
+					a[i].real /= n;
+					a[i].imag /= n;
+				}
+			}
+			return to_send;
+		}
 		if ((my_rank / distance) % 2 == 0){
 			printf("rank: %d, receiving from %d\n", my_rank, my_rank + distance);
 			MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -172,19 +182,27 @@ void parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int inv
 		cycles++;
 	}
 
-	free(to_send);
-	free(received);
 	
-	// If needed apply the inverse transform
-	if (invert) {
-		int i;
-		for (i = my_start; i < my_end; i++) {
-			a[i].real /= n;
-			a[i].imag /= n;
-		}
-	}
+
 
 }
+
+void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a){
+	send_tuple *final_receive;
+	if (my_rank == 0){
+		*final_receive = malloc(sizeof(send_tuple) * n);
+	}
+	MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
+	if (my_rank == 0){
+		int x;
+		for (x=0; x<n; x++){
+			a[final_receive[x].index] = final_receive[x].value;
+		}
+	}
+}
+
+
+
 
 int main(int argc, char* argv[]) {
 	int comm_sz;
@@ -301,18 +319,38 @@ int main(int argc, char* argv[]) {
 			fprintf(timings_file, "Time for broadcasting the input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
 
+		int my_start = my_rank * n / comm_sz;
+		int my_end = (my_rank + 1) * n / comm_sz;
+		int my_size = my_end - my_start;
+
 		start = clock();
 
 		//Solve my data
-		parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
+		send_tuple* data_to_send = parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
 
 		end = clock();
 		if (PRINTING_TIME) {
 			fprintf(timings_file, "Time for calculating the parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
 
-		//Print my result
+		//gather result in node 0
+		start = clock();
+		gather_data(data_to_send, my_size, my_rank, a);
+		end = clock();
+		if (PRINTING_TIME) {
+			fprintf(timings_file, "Time for gathering data: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+		}
 
+		start = clock();
+		//Print result
+		for (i=0; i<n; i++){
+			printf("%lf ",a[i].real );
+		}
+		printf("\n");
+		end = clock();
+		if (PRINTING_TIME) {
+			fprintf(timings_file, "Time for printing result: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+		}
 
 		fclose(timings_file);
 
@@ -333,11 +371,12 @@ int main(int argc, char* argv[]) {
 			lg_n++;
 
 		//Solve my data
-		parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
+		int my_start = my_rank * n / comm_sz;
+		int my_end = (my_rank + 1) * n / comm_sz;
+		int my_size = my_end - my_start;
 
-
-		//Print my result
-
+		send_tuple* data_to_send = parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
+		gather_data(data_to_send, my_size, my_rank, a);
 
 		//Free memory
 		free(a);
