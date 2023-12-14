@@ -129,6 +129,7 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 					a[i + j + len / 2] = sub(u, v);
 					w = mul(w, wlen);
 
+					// Fill the tuple array with the values we need to send
 					to_send[send_index].value = a[i+j];
 					to_send[send_index].index = i+j;
 					send_index++;
@@ -140,7 +141,7 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 			}
 		}
 
-		int distance = pow(2, exchange_cycle); //distance between thread that will communicate with each other
+		int distance = pow(2, exchange_cycle); //distance between threads that will communicate with each other
 
 		// Last cycle we don't have anything to send to others
 		if (len == n){
@@ -195,12 +196,9 @@ void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, in
 		}
 	} else {
 		send_tuple* final_receive;// = malloc(sizeof(send_tuple) * n);
-		MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
+		MPI_Gather(to_send, my_size, mpi_send_tuple_type, NULL, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
 	}
 }
-
-
-
 
 int main(int argc, char* argv[]) {
 	int comm_sz;
@@ -329,20 +327,24 @@ int main(int argc, char* argv[]) {
 			fprintf(timings_file, "Time for calculating the parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
 
-		//gather result in node 0
 		start = clock();
+
+		//Gather result in the root node
 		gather_data(data_to_send, my_size, my_rank, a, n);
+
 		end = clock();
 		if (PRINTING_TIME) {
 			fprintf(timings_file, "Time for gathering data: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
 
 		start = clock();
-		//Print result
+
+		//Print the result
 		for (i=0; i<n; i++){
 			printf("%lf ",a[i].real );
 		}
 		printf("\n");
+
 		end = clock();
 		if (PRINTING_TIME) {
 			fprintf(timings_file, "Time for printing result: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
@@ -366,12 +368,14 @@ int main(int argc, char* argv[]) {
 		while ((1 << lg_n) < n)
 			lg_n++;
 
-		//Solve my data
 		int my_start = my_rank * n / comm_sz;
 		int my_end = (my_rank + 1) * n / comm_sz;
 		int my_size = my_end - my_start;
 
+		//Solve my data
 		send_tuple* data_to_send = parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
+
+		//Gather result in the root node
 		gather_data(data_to_send, my_size, my_rank, a, n);
 
 		//Free memory
