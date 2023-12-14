@@ -1,1 +1,3 @@
 parallel_solver_0
+*.sh.o*
+*.sh.e*
