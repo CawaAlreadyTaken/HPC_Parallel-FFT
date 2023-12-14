@@ -144,7 +144,7 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 
 		// Last cycle we don't have anything to send to others
 		if (len == n){
-			free(to_send);
+			//free(to_send);
 			free(received);
 			// If needed apply the inverse transform
 			if (invert) {
@@ -182,22 +182,20 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 		cycles++;
 	}
 
-	
-
-
+	return NULL;
 }
 
-void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a){
-	send_tuple *final_receive;
+void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, int n){
 	if (my_rank == 0){
-		*final_receive = malloc(sizeof(send_tuple) * n);
-	}
-	MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
-	if (my_rank == 0){
+		send_tuple* final_receive = malloc(sizeof(send_tuple) * n);
+		MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
 		int x;
 		for (x=0; x<n; x++){
 			a[final_receive[x].index] = final_receive[x].value;
 		}
+	} else {
+		send_tuple* final_receive;// = malloc(sizeof(send_tuple) * n);
+		MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
 	}
 }
 
@@ -214,8 +212,6 @@ int main(int argc, char* argv[]) {
 
 	// Timers declaration for measuring time
 	clock_t start, end;
-
-	send_tuple data;
 
 	// MPI new type definition
 	int blocklengths[2] = {1, 1};
@@ -335,7 +331,7 @@ int main(int argc, char* argv[]) {
 
 		//gather result in node 0
 		start = clock();
-		gather_data(data_to_send, my_size, my_rank, a);
+		gather_data(data_to_send, my_size, my_rank, a, n);
 		end = clock();
 		if (PRINTING_TIME) {
 			fprintf(timings_file, "Time for gathering data: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
@@ -376,7 +372,7 @@ int main(int argc, char* argv[]) {
 		int my_size = my_end - my_start;
 
 		send_tuple* data_to_send = parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
-		gather_data(data_to_send, my_size, my_rank, a);
+		gather_data(data_to_send, my_size, my_rank, a, n);
 
 		//Free memory
 		free(a);
