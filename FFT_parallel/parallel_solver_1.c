@@ -467,6 +467,7 @@ int main(int argc, char** argv) {
 
         send_tuple* data_to_send_a = parallel_fft(a, n0, my_rank, comm_sz, lg_n, 0);
 
+	// Send data to the root node
         gather_data(data_to_send_a, my_size_a, my_rank, a, n0);
 
         int n1;
@@ -485,6 +486,7 @@ int main(int argc, char** argv) {
 
         send_tuple* data_to_send_b = parallel_fft(b, n1, my_rank, comm_sz, lg_n, 0);
 
+	// Send data to the root node
         gather_data(data_to_send_b, my_size_b, my_rank, b, n1);
 
         free(a);
