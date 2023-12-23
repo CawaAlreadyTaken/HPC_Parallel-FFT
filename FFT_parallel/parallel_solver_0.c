@@ -78,7 +78,7 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 	// This is the number of cycles for which we don't need to exchange data
 	int no_exchange = lg_n - lg_comm_sz;
 
-	//This is a counter for th cycle we are inside
+	// This is a counter for the current cycle
 	int cycles = 1;
 
 	// Allocate memory for the tuples we will send and receive
@@ -140,12 +140,11 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 				number_of_iterations+=2;
 			}
 		}
-
-		int distance = pow(2, exchange_cycle); //distance between threads that will communicate with each other
+		// Distance between threads that will communicate with each other
+		int distance = pow(2, exchange_cycle);
 
 		// Last cycle we don't have anything to send to others
 		if (len == n){
-			//free(to_send);
 			free(received);
 			// If needed apply the inverse transform
 			if (invert) {
@@ -195,7 +194,6 @@ void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, in
 			a[final_receive[x].index] = final_receive[x].value;
 		}
 	} else {
-		send_tuple* final_receive;// = malloc(sizeof(send_tuple) * n);
 		MPI_Gather(to_send, my_size, mpi_send_tuple_type, NULL, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
 	}
 }
@@ -301,10 +299,10 @@ int main(int argc, char* argv[]) {
 
 		start = clock();
 
-		//Broadcast n
+		// Broadcast n
 		MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-		//Broadcast the array a
+		// Broadcast the array a
 		MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
 		end = clock();
@@ -313,13 +311,13 @@ int main(int argc, char* argv[]) {
 			fprintf(timings_file, "Time for broadcasting the input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
 
-		int my_start = my_rank * n / comm_sz;
-		int my_end = (my_rank + 1) * n / comm_sz;
-		int my_size = my_end - my_start;
+		int my_start = 0;
+		int my_end = n / comm_sz;
+		int my_size = my_end;
 
 		start = clock();
 
-		//Solve my data
+		// Solve my data
 		send_tuple* data_to_send = parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
 
 		end = clock();
@@ -329,7 +327,7 @@ int main(int argc, char* argv[]) {
 
 		start = clock();
 
-		//Gather result in the root node
+		// Gather result in the root node
 		gather_data(data_to_send, my_size, my_rank, a, n);
 
 		end = clock();
@@ -339,9 +337,9 @@ int main(int argc, char* argv[]) {
 
 		start = clock();
 
-		//Print the result
+		// Print the result
 		for (i=0; i<n; i++){
-			printf("%lf ",a[i].real );
+			printf("%lf ", a[i].real);
 		}
 		printf("\n");
 
@@ -352,18 +350,15 @@ int main(int argc, char* argv[]) {
 
 		fclose(timings_file);
 
-		//Free memory
+		// Free memory
 		free(a);
 	} else {
-		// Receiving n
 		int n;
 		MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-		// Receiving the array a
 		complex *a = malloc(n * sizeof(complex));
 		MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
-		// Calculating lg_n
 		int lg_n = 0;
 		while ((1 << lg_n) < n)
 			lg_n++;
@@ -372,13 +367,10 @@ int main(int argc, char* argv[]) {
 		int my_end = (my_rank + 1) * n / comm_sz;
 		int my_size = my_end - my_start;
 
-		//Solve my data
 		send_tuple* data_to_send = parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
 
-		//Gather result in the root node
 		gather_data(data_to_send, my_size, my_rank, a, n);
 
-		//Free memory
 		free(a);
 	}
 
