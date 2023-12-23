@@ -7,7 +7,7 @@
 #include <assert.h>
 #include <mpi.h>
 
-const int PRINTING_OUTPUT = 0;
+const int PRINTING_OUTPUT = 1;
 const int PRINTING_TIME = 1;
 MPI_Datatype mpi_send_tuple_type;
 
@@ -23,7 +23,8 @@ typedef struct {
 
 int reverse(int num, int lg_n) {
     int res = 0;
-    for (int i = 0; i < lg_n; i++) {
+    int i;
+    for (i = 0; i < lg_n; i++) {
         if (num & (1 << i))
             res |= 1 << (lg_n - 1 - i);
     }
@@ -66,8 +67,9 @@ complex mul(complex a, complex b) {
 
 void multiply_transformed_polynomials(complex *a, int n0, complex *b, int n1) {
     assert(n0 == n1); // n0 and n1 must be equal: polynomials of the same length
-
-    for (int i = 0; i < n0; i++) {
+	
+    int i;
+    for (i = 0; i < n0; i++) {
         a[i] = mul(a[i], b[i]);
     }
 }
@@ -319,7 +321,6 @@ int main(int argc, char** argv) {
             fprintf(timings_file, "Time for broadcasting the first input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
 
-        int my_start_a = 0;
         int my_end_a = n0 / comm_sz;
         int my_size_a = my_end_a;
 
@@ -397,9 +398,8 @@ int main(int argc, char** argv) {
             fprintf(timings_file, "Time for broadcasting the second input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
 
-        int my_start_b = 0;
         int my_end_b = n1 / comm_sz;
-        int my_size_b = my_end_b - my_start_b;
+        int my_size_b = my_end_b;
 
         start = clock();
 
@@ -436,7 +436,7 @@ int main(int argc, char** argv) {
             start = clock();
 
             printf("FFT result:\n");
-            for (int i = 0; i < n0; i++) {
+            for (i = 0; i < n0; i++) {
                 printf("(%f, %f)\n", a[i].real, a[i].imag);
             }
 
