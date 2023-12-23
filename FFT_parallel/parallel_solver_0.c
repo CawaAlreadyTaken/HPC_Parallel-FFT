@@ -171,9 +171,6 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 			MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			printf("rank: %d, received from %d\n", my_rank, my_rank - distance);
 		}
-		printf("rank: %d reached barrier at cycle %d\n", my_rank, exchange_cycle);
-		MPI_Barrier(MPI_COMM_WORLD);
-		printf("rank: %d passed barrier at cycle %d\n", my_rank, exchange_cycle);
 
 		int x;
 		for (x=0; x<my_size; x++){

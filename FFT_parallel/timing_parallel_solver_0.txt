@@ -1,6 +1,6 @@
-Time for allocating memory and reading input: 4.650000 seconds
-Time for reordering the input array: 6.950000 seconds
-Time for broadcasting the input array: 1.960000 seconds
-Time for calculating the parallel fft: 1.320000 seconds
-Time for gathering data: 1.030000 seconds
-Time for printing result: 53.690000 seconds
+Time for allocating memory and reading input: 3.710000 seconds
+Time for reordering the input array: 5.710000 seconds
+Time for broadcasting the input array: 0.730000 seconds
+Time for calculating the parallel fft: 0.860000 seconds
+Time for gathering data: 0.690000 seconds
+Time for printing result: 51.120000 seconds
