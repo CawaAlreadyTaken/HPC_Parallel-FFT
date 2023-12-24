@@ -254,6 +254,12 @@ int main(int argc, char* argv[]) {
 		// Allocating memory for input array
 		complex *input_a = malloc(n * sizeof(complex));
 		complex *a = malloc(n * sizeof(complex));
+		if (input_a == NULL || a == NULL) {
+			perror("Error allocating memory for input array");
+			return 1;
+		}
+
+		end = clock();
 
 		// Reading input array
 		int i;
@@ -357,6 +363,10 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "my_rank: %d, my_start: %d, my_end: %d, my_size: %d, n: %d\n", my_rank, my_start, my_end, my_size, n);
 
 		complex *a = malloc(n * sizeof(complex));
+		if (a == NULL) {
+			perror("Error allocating memory for input array");
+			return 1;
+		}
 		MPI_Scatter(a, my_size, MPI_DOUBLE_COMPLEX, &a[my_start], my_size, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 		fprintf(stderr, "QUI!: my_rank: %d, my_start: %d, my_end: %d, my_size: %d, n: %d\n", my_rank, my_start, my_end, my_size, n);
 		MPI_Barrier(MPI_COMM_WORLD);
