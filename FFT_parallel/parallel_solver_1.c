@@ -7,7 +7,7 @@
 #include <assert.h>
 #include <mpi.h>
 
-const int PRINTING_OUTPUT = 1;
+const int PRINTING_OUTPUT = 0;
 const int PRINTING_TIME = 1;
 MPI_Datatype mpi_send_tuple_type;
 
@@ -170,19 +170,19 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
             return to_send;
         }
         if ((my_rank / distance) % 2 == 0){
-            printf("rank: %d, receiving from %d\n", my_rank, my_rank + distance);
+            //printf("rank: %d, receiving from %d\n", my_rank, my_rank + distance);
             MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            printf("rank: %d, received from %d\n", my_rank, my_rank + distance);
-            printf("rank: %d, sending to %d\n", my_rank, my_rank + distance);
+            //printf("rank: %d, received from %d\n", my_rank, my_rank + distance);
+            //printf("rank: %d, sending to %d\n", my_rank, my_rank + distance);
             MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD);
-            printf("rank: %d, sent to %d\n", my_rank, my_rank + distance);
+            //printf("rank: %d, sent to %d\n", my_rank, my_rank + distance);
         } else {
-            printf("rank: %d, sending to %d\n", my_rank, my_rank - distance);
+            //printf("rank: %d, sending to %d\n", my_rank, my_rank - distance);
             MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD);
-            printf("rank: %d, sent to %d\n", my_rank, my_rank - distance);
-            printf("rank: %d, receiving from %d\n", my_rank, my_rank - distance);
+            //printf("rank: %d, sent to %d\n", my_rank, my_rank - distance);
+            //printf("rank: %d, receiving from %d\n", my_rank, my_rank - distance);
             MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            printf("rank: %d, received from %d\n", my_rank, my_rank - distance);
+            //printf("rank: %d, received from %d\n", my_rank, my_rank - distance);
         }
 
         int x;
@@ -246,7 +246,7 @@ int main(int argc, char** argv) {
         strcat(full_timings_file, timings_file_name);
         FILE *timings_file = fopen(full_timings_file, "w");
         // Opening file for reading input
-        const char *input_file_name = "../dataset/data/dataset_1_0.txt";
+        const char *input_file_name = "../dataset/data/dataset_1_2.txt";
         int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
         char *full_input_file = (char *)malloc(input_file_length);
         strcpy(full_input_file, argv[1]);
@@ -286,7 +286,6 @@ int main(int argc, char** argv) {
         if (PRINTING_TIME) {
             fprintf(timings_file, "Time for allocating memory and reading first input: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
-        fclose(input_file);
 
         start = clock();
 
@@ -331,7 +330,7 @@ int main(int argc, char** argv) {
 
         end = clock();
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for calculating the second parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for calculating the first parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
 
         start = clock();
