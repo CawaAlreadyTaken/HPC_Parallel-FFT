@@ -7,4 +7,4 @@
 #PBS -q short_cpuQ
 
 module load mpich-3.2
-mpirun.actual -n 8 HPC_Parallel-FFT/FFT_parallel/prova_scatter HPC_Parallel-FFT/FFT_parallel/
+mpirun.actual --verbose -n 8 HPC_Parallel-FFT/FFT_parallel/prova_scatter HPC_Parallel-FFT/FFT_parallel/

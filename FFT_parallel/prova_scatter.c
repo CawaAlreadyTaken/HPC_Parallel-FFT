@@ -204,6 +204,7 @@ int main(int argc, char* argv[]) {
 	MPI_Init(NULL, NULL);
 	MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	printf("QUI\n");
 
 	// Timers declaration for measuring time
 	clock_t start, end;
@@ -235,7 +236,7 @@ int main(int argc, char* argv[]) {
 		strcat(full_timings_file, timings_file_name);
 		FILE *timings_file = fopen(full_timings_file, "w");
 		// Opening file for reading input
-		const char *input_file_name = "../dataset/data/dataset_0_2.txt";
+		const char *input_file_name = "../dataset/data/dataset_0_0.txt";
 		int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 		char *full_input_file = (char *)malloc(input_file_length);
 		strcpy(full_input_file, argv[1]);
@@ -305,9 +306,12 @@ int main(int argc, char* argv[]) {
 
 		int my_end = n / comm_sz;
 		int my_size = my_end;
-		
+
 		// Scatter data
+		printf("my_rank: %d, will scatter, my_size: %d, x: %p, n: %d\n", my_rank, my_size, a, n);
 		MPI_Scatter(input_a, my_size, mpi_send_tuple_type, a, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
+		printf("my_rank: %d, passed scatter\n", my_rank);
+		MPI_Barrier(MPI_COMM_WORLD);
 
 		end = clock();
 
@@ -363,7 +367,11 @@ int main(int argc, char* argv[]) {
 		int my_size = my_end - my_start;
 
 		complex *a = malloc(n * sizeof(complex));
-		MPI_Scatter(NULL, my_size, mpi_send_tuple_type, &a[my_start], my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
+		complex *x = malloc(my_size * sizeof(complex));
+		printf("my_rank: %d, will scatter, my_size: %d, x: %p, n: %d\n", my_rank, my_size, x, n);
+		MPI_Scatter(NULL, my_size, mpi_send_tuple_type, x, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
+		printf("my_rank: %d, passed scatter\n", my_rank);
+		MPI_Barrier(MPI_COMM_WORLD);
 
 		int lg_n = 0;
 		while ((1 << lg_n) < n)
