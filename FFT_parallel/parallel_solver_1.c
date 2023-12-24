@@ -305,8 +305,9 @@ int main(int argc, char** argv) {
 
         // TODO: check data dependencies
         for (i = 0; i < n0; i++) {
-            if (i < reverse(i, lg_n))
-                swap(&a[i], &a[reverse(i, lg_n)]);
+	    int rev = reverse(i, lg_n);
+            if (i < rev)
+                swap(&a[i], &a[rev]);
         }
 
         end = clock();
@@ -382,8 +383,9 @@ int main(int argc, char** argv) {
             lg_n++;
 
         for (i = 0; i < n1; i++) {
-            if (i < reverse(i, lg_n))
-                swap(&b[i], &b[reverse(i, lg_n)]);
+	    int rev = reverse(i, lg_n);
+            if (i < rev)
+                swap(&a[i], &a[rev]);
         }
 
         end = clock();
