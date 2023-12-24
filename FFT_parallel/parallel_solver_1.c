@@ -157,7 +157,6 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 
         // Last cycle we don't have anything to send to others
         if (len == n){
-            //free(to_send);
             free(received);
             // If needed apply the inverse transform
             if (invert) {
@@ -192,11 +191,21 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
         cycles++;
     }
 
+    free(received);
+    // If needed apply the inverse transform
+    if (invert) {
+	int i;
+	for (i = my_start; i < my_end; i++) {
+	    a[i].real /= n;
+	    a[i].imag /= n;
+	}
+    }
     return NULL;
 }
 
 void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, int n){
     if (my_rank == 0){
+	if (to_send == NULL) return; // This happens when the comm_sz is 1. We already have all the data
         send_tuple* final_receive = malloc(sizeof(send_tuple) * n);
         MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
         int x;

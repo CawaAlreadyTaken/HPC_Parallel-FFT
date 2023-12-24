@@ -184,6 +184,7 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 
 void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, int n){
 	if (my_rank == 0){
+		if (to_send == NULL) return; // This happens when the comm_sz is 1. We already have all the data
 		send_tuple* final_receive = malloc(sizeof(send_tuple) * n);
 		MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
 		int x;
@@ -233,7 +234,7 @@ int main(int argc, char* argv[]) {
 		strcat(full_timings_file, timings_file_name);
 		FILE *timings_file = fopen(full_timings_file, "w");
 		// Opening file for reading input
-		const char *input_file_name = "../dataset/data/dataset_0_2.txt";
+		const char *input_file_name = "../dataset/data/dataset_0_0.txt";
 		int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 		char *full_input_file = (char *)malloc(input_file_length);
 		strcpy(full_input_file, argv[1]);
@@ -308,7 +309,6 @@ int main(int argc, char* argv[]) {
 			fprintf(timings_file, "Time for broadcasting the input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
 
-		int my_start = 0;
 		int my_end = n / comm_sz;
 		int my_size = my_end;
 
