@@ -234,7 +234,7 @@ int main(int argc, char* argv[]) {
 		strcat(full_timings_file, timings_file_name);
 		FILE *timings_file = fopen(full_timings_file, "w");
 		// Opening file for reading input
-		const char *input_file_name = "../dataset/data/dataset_0_0.txt";
+		const char *input_file_name = "../dataset/data/dataset_0_2.txt";
 		int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 		char *full_input_file = (char *)malloc(input_file_length);
 		strcpy(full_input_file, argv[1]);
@@ -332,17 +332,19 @@ int main(int argc, char* argv[]) {
 			fprintf(timings_file, "Time for gathering data: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
 
-		start = clock();
+		if (PRINTING_OUTPUT) {
+			start = clock();
 
-		// Print the result
-		for (i=0; i<n; i++){
-			printf("%lf ", a[i].real);
-		}
-		printf("\n");
+			// Print the result
+			for (i=0; i<n; i++){
+				printf("%lf ", a[i].real);
+			}
+			printf("\n");
 
-		end = clock();
-		if (PRINTING_TIME) {
-			fprintf(timings_file, "Time for printing result: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+			end = clock();
+			if (PRINTING_TIME) {
+				fprintf(timings_file, "Time for printing result: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+			}
 		}
 
 		fclose(timings_file);
