@@ -157,19 +157,11 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 			return to_send;
 		}
 		if ((my_rank / distance) % 2 == 0){
-			printf("rank: %d, receiving from %d\n", my_rank, my_rank + distance);
 			MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			printf("rank: %d, received from %d\n", my_rank, my_rank + distance);
-			printf("rank: %d, sending to %d\n", my_rank, my_rank + distance);
 			MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD);
-			printf("rank: %d, sent to %d\n", my_rank, my_rank + distance);
 		} else {
-			printf("rank: %d, sending to %d\n", my_rank, my_rank - distance);
 			MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD);
-			printf("rank: %d, sent to %d\n", my_rank, my_rank - distance);
-			printf("rank: %d, receiving from %d\n", my_rank, my_rank - distance);
 			MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			printf("rank: %d, received from %d\n", my_rank, my_rank - distance);
 		}
 
 		int x;
@@ -182,7 +174,7 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
 	return NULL;
 }
 
-void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, int n){
+void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, int n) {
 	if (my_rank == 0){
 		if (to_send == NULL) return; // This happens when the comm_sz is 1. We already have all the data
 		send_tuple* final_receive = malloc(sizeof(send_tuple) * n);
@@ -234,7 +226,7 @@ int main(int argc, char* argv[]) {
 		strcat(full_timings_file, timings_file_name);
 		FILE *timings_file = fopen(full_timings_file, "w");
 		// Opening file for reading input
-		const char *input_file_name = "../dataset/data/dataset_0_2.txt";
+		const char *input_file_name = "../dataset/data/dataset_0_3.txt";
 		int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 		char *full_input_file = (char *)malloc(input_file_length);
 		strcpy(full_input_file, argv[1]);
@@ -260,13 +252,14 @@ int main(int argc, char* argv[]) {
 		start = clock();
 
 		// Allocating memory for input array
+		complex *input_a = malloc(n * sizeof(complex));
 		complex *a = malloc(n * sizeof(complex));
 
 		// Reading input array
 		int i;
 		for (i = 0; i < n; i++) {
-			fscanf(input_file, "%lf", &a[i].real);
-			a[i].imag = 0;
+			fscanf(input_file, "%lf", &input_a[i].real);
+			input_a[i].imag = 0;
 		}
 
 		end = clock();
@@ -287,7 +280,7 @@ int main(int argc, char* argv[]) {
 		for (i = 0; i < n; i++) {
 			int rev = reverse(i, lg_n);
 			if (i < rev)
-				swap(&a[i], &a[rev]);
+				swap(&input_a[i], &input_a[rev]);
 		}
 
 		end = clock();
@@ -301,17 +294,19 @@ int main(int argc, char* argv[]) {
 		// Broadcast n
 		MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-		// Broadcast the array a
-		MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+		int my_end = n / comm_sz;
+		int my_size = my_end;
+		fprintf(stderr, "my_rank: %d, my_start: 0, my_end: %d, my_size: %d, n: %d\n", my_rank, my_end, my_size, n);
+
+		// Scatter data
+		MPI_Scatter(input_a, my_size, MPI_DOUBLE_COMPLEX, a, my_size, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
 
 		end = clock();
 
 		if (PRINTING_TIME) {
-			fprintf(timings_file, "Time for broadcasting the input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+			fprintf(timings_file, "Time for scattering the input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
-
-		int my_end = n / comm_sz;
-		int my_size = my_end;
 
 		start = clock();
 
@@ -356,16 +351,19 @@ int main(int argc, char* argv[]) {
 		int n;
 		MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+		int my_start = n / comm_sz * my_rank;
+		int my_end = n / comm_sz * (my_rank + 1);
+		int my_size = my_end - my_start;
+		fprintf(stderr, "my_rank: %d, my_start: %d, my_end: %d, my_size: %d, n: %d\n", my_rank, my_start, my_end, my_size, n);
+
 		complex *a = malloc(n * sizeof(complex));
-		MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+		MPI_Scatter(a, my_size, MPI_DOUBLE_COMPLEX, &a[my_start], my_size, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+		fprintf(stderr, "QUI!: my_rank: %d, my_start: %d, my_end: %d, my_size: %d, n: %d\n", my_rank, my_start, my_end, my_size, n);
+		MPI_Barrier(MPI_COMM_WORLD);
 
 		int lg_n = 0;
 		while ((1 << lg_n) < n)
 			lg_n++;
-
-		int my_start = n / comm_sz * my_rank;
-		int my_end = n / comm_sz * (my_rank + 1);
-		int my_size = my_end - my_start;
 
 		send_tuple* data_to_send = parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
 
