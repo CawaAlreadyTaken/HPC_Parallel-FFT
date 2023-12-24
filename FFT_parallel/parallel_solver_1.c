@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
         strcat(full_timings_file, timings_file_name);
         FILE *timings_file = fopen(full_timings_file, "w");
         // Opening file for reading input
-        const char *input_file_name = "../dataset/data/dataset_1_0.txt";
+        const char *input_file_name = "../dataset/data/dataset_1_2.txt";
         int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
         char *full_input_file = (char *)malloc(input_file_length);
         strcpy(full_input_file, argv[1]);
@@ -286,16 +286,17 @@ int main(int argc, char** argv) {
 
         // Allocating memory for first input array
         complex *a = malloc(2 * n0 * sizeof(complex));
+	complex *input_a = malloc(2 * n0 * sizeof(complex));
 
         // Reading first input array
         int i;
         for (i = 0; i < n0; i++) {
-            fscanf(input_file, "%lf", &a[i].real);
-            a[i].imag = 0;
+            fscanf(input_file, "%lf", &input_a[i].real);
+            input_a[i].imag = 0;
         }
 	for (i = n0; i < 2*n0; i++) {
-	    a[i].real = 0;
-	    a[i].imag = 0;
+	    input_a[i].real = 0;
+	    input_a[i].imag = 0;
 	}
 
         end = clock();
@@ -315,7 +316,7 @@ int main(int argc, char** argv) {
         for (i = 0; i < 2*n0; i++) {
 	    int rev = reverse(i, lg_n);
             if (i < rev)
-                swap(&a[i], &a[rev]);
+                swap(&input_a[i], &input_a[rev]);
         }
 
         end = clock();
@@ -329,17 +330,17 @@ int main(int argc, char** argv) {
         // Broadcast n0
         MPI_Bcast(&n0, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        // Broadcast the first array a
-        MPI_Bcast(a, 2*n0, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+        int my_end_a = 2*n0 / comm_sz;
+        int my_size_a = my_end_a;
+
+        // Scatter the first array a
+	MPI_Scatter(input_a, my_size_a, MPI_DOUBLE_COMPLEX, a, my_size_a, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         end = clock();
 
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for broadcasting the first input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for scattering the first input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
-
-        int my_end_a = 2*n0 / comm_sz;
-        int my_size_a = my_end_a;
 
         start = clock();
 
@@ -369,15 +370,16 @@ int main(int argc, char** argv) {
 
         // Allocating memory for second array
         complex *b = malloc(2 * n1 * sizeof(complex));
+	complex *input_b = malloc(2 * n1 * sizeof(complex));
 
         // Reading input array
         for (i = 0; i < n1; i++) {
-            fscanf(input_file, "%lf", &b[i].real);
-            b[i].imag = 0;
+            fscanf(input_file, "%lf", &input_b[i].real);
+            input_b[i].imag = 0;
         }
 	for (i = n1; i < 2*n1; i++) {
-	    b[i].real = 0;
-	    b[i].imag = 0;
+	    input_b[i].real = 0;
+	    input_b[i].imag = 0;
 	}
 
         end = clock();
@@ -397,7 +399,7 @@ int main(int argc, char** argv) {
         for (i = 0; i < 2*n1; i++) {
 	    int rev = reverse(i, lg_n);
             if (i < rev)
-                swap(&a[i], &a[rev]);
+                swap(&input_b[i], &input_b[rev]);
         }
 
         end = clock();
@@ -411,17 +413,17 @@ int main(int argc, char** argv) {
         // Broadcast n1
         MPI_Bcast(&n1, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        // Broadcast the second array b
-        MPI_Bcast(b, 2*n1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+        int my_end_b = 2*n1 / comm_sz;
+        int my_size_b = my_end_b;
+
+        // Scatter the second array b
+	MPI_Scatter(input_b, my_size_b, MPI_DOUBLE_COMPLEX, b, my_size_b, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         end = clock();
 
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for broadcasting the second input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for scattering the second input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
-
-        int my_end_b = 2*n1 / comm_sz;
-        int my_size_b = my_end_b;
 
         start = clock();
 
@@ -471,22 +473,24 @@ int main(int argc, char** argv) {
 
         free(a);
         free(b);
+	free(input_a);
+	free(input_b);
         free(data_to_send_a);
         free(data_to_send_b);
     } else {
         int n0;
         MPI_Bcast(&n0, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+        int my_start_a = 2*n0 / comm_sz * my_rank;
+        int my_end_a = 2*n0 / comm_sz * (my_rank + 1);
+        int my_size_a = my_end_a - my_start_a;
+
         complex *a = malloc(2 * n0 * sizeof(complex));
-        MPI_Bcast(a, 2*n0, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+	MPI_Scatter(a, my_size_a, MPI_DOUBLE_COMPLEX, &a[my_start_a], my_size_a, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         int lg_n = 0;
         while ((1 << lg_n) < 2*n0)
             lg_n++;
-
-        int my_start_a = 2*n0 / comm_sz * my_rank;
-        int my_end_a = 2*n0 / comm_sz * (my_rank + 1);
-        int my_size_a = my_end_a - my_start_a;
 
         send_tuple* data_to_send_a = parallel_fft(a, 2*n0, my_rank, comm_sz, lg_n, 0);
 
@@ -496,16 +500,16 @@ int main(int argc, char** argv) {
         int n1;
         MPI_Bcast(&n1, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+        int my_start_b = 2*n1 / comm_sz * my_rank;
+        int my_end_b = 2*n1 / comm_sz * (my_rank + 1);
+        int my_size_b = my_end_b - my_start_b;
+
         complex *b = malloc(2*n1 * sizeof(complex));
-        MPI_Bcast(b, 2*n1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+	MPI_Scatter(b, my_size_b, MPI_DOUBLE_COMPLEX, &b[my_start_b], my_size_b, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         lg_n = 0;
         while ((1 << lg_n) < 2*n1)
             lg_n++;
-
-        int my_start_b = 2*n1 / comm_sz * my_rank;
-        int my_end_b = 2*n1 / comm_sz * (my_rank + 1);
-        int my_size_b = my_end_b - my_start_b;
 
         send_tuple* data_to_send_b = parallel_fft(b, 2*n1, my_rank, comm_sz, lg_n, 0);
 

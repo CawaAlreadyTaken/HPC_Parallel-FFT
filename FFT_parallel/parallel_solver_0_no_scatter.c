@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Opening file for writing time results
-	const char *timings_file_name = "timing_parallel_solver_0_no_broadcast.txt";
+	const char *timings_file_name = "timing_parallel_solver_0_no_scatter.txt";
 	int timings_file_length = strlen(argv[1]) + strlen(timings_file_name) + 1;
 	char *full_timings_file = (char *)malloc(timings_file_length);
 	strcpy(full_timings_file, argv[1]);

@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
 		strcat(full_timings_file, timings_file_name);
 		FILE *timings_file = fopen(full_timings_file, "w");
 		// Opening file for reading input
-		const char *input_file_name = "../dataset/data/dataset_0_3.txt";
+		const char *input_file_name = "../dataset/data/dataset_0_2.txt";
 		int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 		char *full_input_file = (char *)malloc(input_file_length);
 		strcpy(full_input_file, argv[1]);
@@ -254,10 +254,6 @@ int main(int argc, char* argv[]) {
 		// Allocating memory for input array
 		complex *input_a = malloc(n * sizeof(complex));
 		complex *a = malloc(n * sizeof(complex));
-		if (input_a == NULL || a == NULL) {
-			perror("Error allocating memory for input array");
-			return 1;
-		}
 
 		end = clock();
 
@@ -302,11 +298,9 @@ int main(int argc, char* argv[]) {
 
 		int my_end = n / comm_sz;
 		int my_size = my_end;
-		fprintf(stderr, "my_rank: %d, my_start: 0, my_end: %d, my_size: %d, n: %d\n", my_rank, my_end, my_size, n);
 
 		// Scatter data
 		MPI_Scatter(input_a, my_size, MPI_DOUBLE_COMPLEX, a, my_size, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
-		MPI_Barrier(MPI_COMM_WORLD);
 
 		end = clock();
 
@@ -353,6 +347,8 @@ int main(int argc, char* argv[]) {
 
 		// Free memory
 		free(a);
+		free(input_a);
+		free(data_to_send);
 	} else {
 		int n;
 		MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -360,16 +356,9 @@ int main(int argc, char* argv[]) {
 		int my_start = n / comm_sz * my_rank;
 		int my_end = n / comm_sz * (my_rank + 1);
 		int my_size = my_end - my_start;
-		fprintf(stderr, "my_rank: %d, my_start: %d, my_end: %d, my_size: %d, n: %d\n", my_rank, my_start, my_end, my_size, n);
 
 		complex *a = malloc(n * sizeof(complex));
-		if (a == NULL) {
-			perror("Error allocating memory for input array");
-			return 1;
-		}
 		MPI_Scatter(a, my_size, MPI_DOUBLE_COMPLEX, &a[my_start], my_size, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
-		fprintf(stderr, "QUI!: my_rank: %d, my_start: %d, my_end: %d, my_size: %d, n: %d\n", my_rank, my_start, my_end, my_size, n);
-		MPI_Barrier(MPI_COMM_WORLD);
 
 		int lg_n = 0;
 		while ((1 << lg_n) < n)
@@ -380,6 +369,7 @@ int main(int argc, char* argv[]) {
 		gather_data(data_to_send, my_size, my_rank, a, n);
 
 		free(a);
+		free(data_to_send);
 	}
 
 	MPI_Type_free(&mpi_send_tuple_type);
