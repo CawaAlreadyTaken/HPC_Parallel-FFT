@@ -13,6 +13,10 @@ typedef struct {
     double imag;
 } complex;
 
+int min(int a, int b) {
+    return (a < b ? a:b);
+}
+
 int reverse(int num, int lg_n) {
     int res = 0;
     for (int i = 0; i < lg_n; i++) {
@@ -57,9 +61,9 @@ complex mul(complex a, complex b) {
 }
 
 void multiply_transformed_polynomials(complex *a, int n0, complex *b, int n1) {
-    assert(n0 == n1); // n0 and n1 must be equal: polynomials of the same length
-
-    for (int i = 0; i < n0; i++) {
+    int minimum = min(n0, n1);
+    // We can just continue until minimum, the others will be 0
+    for (int i = 0; i < minimum; i++) {
         a[i] = mul(a[i], b[i]);
     }
 }
@@ -111,12 +115,16 @@ int main() {
     start = clock();
 
     // Allocating memory for input array
-    complex *a = malloc(n0 * sizeof(complex));
+    complex *a = malloc(2 * n0 * sizeof(complex));
 
     // Reading input array
     for (int i = 0; i < n0; i++) {
         scanf("%lf", &a[i].real);
         a[i].imag = 0;
+    }
+    for (int i = n0; i < 2*n0; i++) {
+	a[i].real = 0;
+	a[i].imag = 0;
     }
 
     end = clock();
@@ -127,7 +135,7 @@ int main() {
     start = clock();
 
     // Calling serial FFT function
-    fft(a, n0, 0);
+    fft(a, 2*n0, 0);
 
     end = clock();
     if (PRINTING_TIME) {
@@ -140,12 +148,16 @@ int main() {
     start = clock();
 
     // Allocating memory for input array
-    complex *b = malloc(n1 * sizeof(complex));
+    complex *b = malloc(2* n1 * sizeof(complex));
 
     // Reading input array
     for (int i = 0; i < n1; i++) {
         scanf("%lf", &b[i].real);
         b[i].imag = 0;
+    }
+    for (int i = n1; i < 2*n1; i++) {
+	b[i].real = 0;
+	b[i].imag = 0;
     }
 
     end = clock();
@@ -156,7 +168,7 @@ int main() {
     start = clock();
 
     // Calling serial FFT function
-    fft(b, n1, 0);
+    fft(b, 2*n1, 0);
 
     end = clock();
     if (PRINTING_TIME) {
@@ -166,7 +178,7 @@ int main() {
     start = clock();
 
     // Multiply polynomials
-    multiply_transformed_polynomials(a, n0, b, n1);
+    multiply_transformed_polynomials(a, 2*n0, b, 2*n1);
 
     end = clock();
 
@@ -178,7 +190,8 @@ int main() {
         start = clock();
 
         printf("FFT result:\n");
-        for (int i = 0; i < n0; i++) {
+	int minimum = min(2*n0, 2*n1);
+        for (int i = 0; i < minimum; i++) {
             printf("(%f, %f)\n", a[i].real, a[i].imag);
         }
 

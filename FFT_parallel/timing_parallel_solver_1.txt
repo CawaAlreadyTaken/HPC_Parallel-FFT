@@ -1,0 +1,11 @@
+Time for allocating memory and reading first input: 5.240000 seconds
+Time for reordering the first input array: 13.660000 seconds
+Time for broadcasting the first input array: 4.690000 seconds
+Time for calculating the first parallel fft: 9.350000 seconds
+Time for first gathering data: 7.450000 seconds
+Time for allocating memory and reading second input: 5.230000 seconds
+Time for reordering the second input array: 13.210000 seconds
+Time for broadcasting the second input array: 8.630000 seconds
+Time for calculating the second parallel fft: 9.800000 seconds
+Time for gathering second data: 6.740000 seconds
+Time for multiplying polynomials: 1.100000 seconds

@@ -21,6 +21,10 @@ typedef struct {
     int index;
 } send_tuple;
 
+int min(int a, int b) {
+    return (a < b ? a:b);
+}
+
 int reverse(int num, int lg_n) {
     int res = 0;
     int i;
@@ -66,18 +70,18 @@ complex mul(complex a, complex b) {
 }
 
 void multiply_transformed_polynomials(complex *a, int n0, complex *b, int n1) {
-    assert(n0 == n1); // n0 and n1 must be equal: polynomials of the same length
-	
+    int minimum = min(n0, n1);
+    // We can just continue until minimum, the others will be 0
     int i;
-    for (i = 0; i < n0; i++) {
+    for (i = 0; i < minimum; i++) {
         a[i] = mul(a[i], b[i]);
     }
 }
 
 send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int invert) {
     // Calculating my start and end
-    int my_start = my_rank * n / comm_sz;
-    int my_end = (my_rank + 1) * n / comm_sz; // This is excluded
+    int my_start = n / comm_sz * my_rank;
+    int my_end = n / comm_sz * (my_rank + 1); // This is excluded
     int my_size = my_end - my_start;
 
     // Calculating lg_comm_sz
@@ -281,7 +285,7 @@ int main(int argc, char** argv) {
         start = clock();
 
         // Allocating memory for first input array
-        complex *a = malloc(n0 * sizeof(complex));
+        complex *a = malloc(2 * n0 * sizeof(complex));
 
         // Reading first input array
         int i;
@@ -289,6 +293,10 @@ int main(int argc, char** argv) {
             fscanf(input_file, "%lf", &a[i].real);
             a[i].imag = 0;
         }
+	for (i = n0; i < 2*n0; i++) {
+	    a[i].real = 0;
+	    a[i].imag = 0;
+	}
 
         end = clock();
 
@@ -300,11 +308,11 @@ int main(int argc, char** argv) {
 
         // Reordering the array
         int lg_n = 0;
-        while ((1 << lg_n) < n0)
+        while ((1 << lg_n) < 2*n0)
             lg_n++;
 
         // TODO: check data dependencies
-        for (i = 0; i < n0; i++) {
+        for (i = 0; i < 2*n0; i++) {
 	    int rev = reverse(i, lg_n);
             if (i < rev)
                 swap(&a[i], &a[rev]);
@@ -322,7 +330,7 @@ int main(int argc, char** argv) {
         MPI_Bcast(&n0, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         // Broadcast the first array a
-        MPI_Bcast(a, n0, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+        MPI_Bcast(a, 2*n0, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         end = clock();
 
@@ -330,13 +338,13 @@ int main(int argc, char** argv) {
             fprintf(timings_file, "Time for broadcasting the first input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
 
-        int my_end_a = n0 / comm_sz;
+        int my_end_a = 2*n0 / comm_sz;
         int my_size_a = my_end_a;
 
         start = clock();
 
         // Solve my data, retrieve the data to send in the last iteration
-        send_tuple* data_to_send_a = parallel_fft(a, n0, my_rank, comm_sz, lg_n, 0);
+        send_tuple* data_to_send_a = parallel_fft(a, 2*n0, my_rank, comm_sz, lg_n, 0);
 
         end = clock();
         if (PRINTING_TIME) {
@@ -346,7 +354,7 @@ int main(int argc, char** argv) {
         start = clock();
 
         // Gather result in the root node
-        gather_data(data_to_send_a, my_size_a, my_rank, a, n0);
+        gather_data(data_to_send_a, my_size_a, my_rank, a, 2*n0);
 
         end = clock();
         if (PRINTING_TIME) {
@@ -360,13 +368,17 @@ int main(int argc, char** argv) {
         start = clock();
 
         // Allocating memory for second array
-        complex *b = malloc(n1 * sizeof(complex));
+        complex *b = malloc(2 * n1 * sizeof(complex));
 
         // Reading input array
         for (i = 0; i < n1; i++) {
             fscanf(input_file, "%lf", &b[i].real);
             b[i].imag = 0;
         }
+	for (i = n1; i < 2*n1; i++) {
+	    b[i].real = 0;
+	    b[i].imag = 0;
+	}
 
         end = clock();
 
@@ -379,10 +391,10 @@ int main(int argc, char** argv) {
 
         // Reordering the second array
         lg_n = 0;
-        while ((1 << lg_n) < n0)
+        while ((1 << lg_n) < 2*n1)
             lg_n++;
 
-        for (i = 0; i < n1; i++) {
+        for (i = 0; i < 2*n1; i++) {
 	    int rev = reverse(i, lg_n);
             if (i < rev)
                 swap(&a[i], &a[rev]);
@@ -400,7 +412,7 @@ int main(int argc, char** argv) {
         MPI_Bcast(&n1, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         // Broadcast the second array b
-        MPI_Bcast(b, n1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+        MPI_Bcast(b, 2*n1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         end = clock();
 
@@ -408,13 +420,13 @@ int main(int argc, char** argv) {
             fprintf(timings_file, "Time for broadcasting the second input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
         }
 
-        int my_end_b = n1 / comm_sz;
+        int my_end_b = 2*n1 / comm_sz;
         int my_size_b = my_end_b;
 
         start = clock();
 
         // Solve my data, retrieve the data to send in the last iteration
-        send_tuple* data_to_send_b = parallel_fft(b, n1, my_rank, comm_sz, lg_n, 0);
+        send_tuple* data_to_send_b = parallel_fft(b, 2*n1, my_rank, comm_sz, lg_n, 0);
 
         end = clock();
         if (PRINTING_TIME) {
@@ -424,7 +436,7 @@ int main(int argc, char** argv) {
         start = clock();
 
         // Gather result in the root node
-        gather_data(data_to_send_b, my_size_b, my_rank, b, n1);
+        gather_data(data_to_send_b, my_size_b, my_rank, b, 2*n1);
 
         end = clock();
         if (PRINTING_TIME) {
@@ -434,7 +446,7 @@ int main(int argc, char** argv) {
         start = clock();
 
         // Multiply polynomials
-        multiply_transformed_polynomials(a, n0, b, n1);
+        multiply_transformed_polynomials(a, 2*n0, b, 2*n1);
 
         end = clock();
 
@@ -446,7 +458,8 @@ int main(int argc, char** argv) {
             start = clock();
 
             printf("FFT result:\n");
-            for (i = 0; i < n0; i++) {
+	    int minimum = min(2*n0, 2*n1);
+            for (i = 0; i < minimum; i++) {
                 printf("(%f, %f)\n", a[i].real, a[i].imag);
             }
 
@@ -464,40 +477,40 @@ int main(int argc, char** argv) {
         int n0;
         MPI_Bcast(&n0, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        complex *a = malloc(n0 * sizeof(complex));
-        MPI_Bcast(a, n0, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+        complex *a = malloc(2 * n0 * sizeof(complex));
+        MPI_Bcast(a, 2*n0, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         int lg_n = 0;
-        while ((1 << lg_n) < n0)
+        while ((1 << lg_n) < 2*n0)
             lg_n++;
 
-        int my_start_a = my_rank * n0 / comm_sz;
-        int my_end_a = (my_rank + 1) * n0 / comm_sz;
+        int my_start_a = 2*n0 / comm_sz * my_rank;
+        int my_end_a = 2*n0 / comm_sz * (my_rank + 1);
         int my_size_a = my_end_a - my_start_a;
 
-        send_tuple* data_to_send_a = parallel_fft(a, n0, my_rank, comm_sz, lg_n, 0);
+        send_tuple* data_to_send_a = parallel_fft(a, 2*n0, my_rank, comm_sz, lg_n, 0);
 
 	// Send data to the root node
-        gather_data(data_to_send_a, my_size_a, my_rank, a, n0);
+        gather_data(data_to_send_a, my_size_a, my_rank, a, 2*n0);
 
         int n1;
         MPI_Bcast(&n1, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        complex *b = malloc(n1 * sizeof(complex));
-        MPI_Bcast(b, n1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+        complex *b = malloc(2*n1 * sizeof(complex));
+        MPI_Bcast(b, 2*n1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
         lg_n = 0;
-        while ((1 << lg_n) < n1)
+        while ((1 << lg_n) < 2*n1)
             lg_n++;
 
-        int my_start_b = my_rank * n1 / comm_sz;
-        int my_end_b = (my_rank + 1) * n1 / comm_sz;
+        int my_start_b = 2*n1 / comm_sz * my_rank;
+        int my_end_b = 2*n1 / comm_sz * (my_rank + 1);
         int my_size_b = my_end_b - my_start_b;
 
-        send_tuple* data_to_send_b = parallel_fft(b, n1, my_rank, comm_sz, lg_n, 0);
+        send_tuple* data_to_send_b = parallel_fft(b, 2*n1, my_rank, comm_sz, lg_n, 0);
 
 	// Send data to the root node
-        gather_data(data_to_send_b, my_size_b, my_rank, b, n1);
+        gather_data(data_to_send_b, my_size_b, my_rank, b, 2*n1);
 
         free(a);
         free(b);

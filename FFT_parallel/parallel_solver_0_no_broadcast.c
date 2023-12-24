@@ -66,8 +66,8 @@ complex mul(complex a, complex b) {
 
 send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n, int invert) {
 	// Calculating my start and end
-	int my_start = my_rank * n / comm_sz;
-	int my_end = (my_rank + 1) * n / comm_sz; // This is excluded
+	int my_start = n / comm_sz * my_rank;
+	int my_end = n / comm_sz * (my_rank + 1); // This is excluded
 	int my_size = my_end - my_start;
 
 	// Calculating lg_comm_sz
@@ -362,8 +362,8 @@ int main(int argc, char* argv[]) {
 				swap(&a[i], &a[rev]);
 		}
 
-		int my_start = my_rank * n / comm_sz;
-		int my_end = (my_rank + 1) * n / comm_sz;
+		int my_start = n / comm_sz * my_rank;
+		int my_end = n / comm_sz * (my_rank + 1);
 		int my_size = my_end - my_start;
 
 		send_tuple* data_to_send = parallel_fft(a, n, my_rank, comm_sz, lg_n, 0);
