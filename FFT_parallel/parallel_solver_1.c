@@ -233,6 +233,21 @@ void custom_scatter(int my_rank, int comm_sz, int n, complex * a) {
 	}
 }
 
+void Build_mpi_type(
+	complex* 	value,
+	int*		index
+) {
+	int array_of_blocklengths[2] = {1, 1};
+	MPI_Datatype array_of_types[2] = {MPI_DOUBLE_COMPLEX, MPI_INT};
+	MPI_Aint value_addr, index_addr;
+	MPI_Aint array_of_displacements[2] = {0};
+	MPI_Get_address(value, &value_addr);
+	MPI_Get_address(index, &index_addr);
+	array_of_displacements[1] = index_addr-value_addr;
+	MPI_Type_create_struct(2, array_of_blocklengths, array_of_displacements, array_of_types, &mpi_send_tuple_type);
+	MPI_Type_commit(&mpi_send_tuple_type);
+}
+
 int main(int argc, char** argv) {
     int comm_sz;
     int my_rank;
@@ -245,15 +260,8 @@ int main(int argc, char** argv) {
     clock_t start, end;
 
     // MPI new type definition
-    int blocklengths[2] = {1, 1};
-    MPI_Datatype types[2] = {MPI_DOUBLE, MPI_INT};
-    MPI_Aint offsets[2];
-
-    offsets[0] = offsetof(send_tuple, value);
-    offsets[1] = offsetof(send_tuple, index);
-
-    MPI_Type_create_struct(2, blocklengths, offsets, types, &mpi_send_tuple_type);
-    MPI_Type_commit(&mpi_send_tuple_type);
+    send_tuple x;
+    Build_mpi_type(&x.value, &x.index);
 
     if (my_rank == 0) {
         // We need to know the working directory
