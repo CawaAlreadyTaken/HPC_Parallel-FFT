@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
 		strcat(full_timings_file, timings_file_name);
 		FILE *timings_file = fopen(full_timings_file, "w");
 		// Opening file for reading input
-		const char *input_file_name = "../dataset/data/dataset_0_2.txt";
+		const char *input_file_name = "../dataset/data/dataset_0_3.txt";
 		int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
 		char *full_input_file = (char *)malloc(input_file_length);
 		strcpy(full_input_file, argv[1]);
@@ -266,14 +266,12 @@ int main(int argc, char* argv[]) {
 		// Allocating memory for input array
 		complex *a = malloc(n * sizeof(complex));
 
-		fprintf(stderr, "master hereA\n");
 		// Reading input array
 		int i;
 		for (i = 0; i < n; i++) {
 			fscanf(input_file, "%lf", &a[i].real);
 			a[i].imag = 0;
 		}
-		fprintf(stderr, "master hereB\n");
 
 		end = clock();
 
@@ -283,7 +281,6 @@ int main(int argc, char* argv[]) {
 		fclose(input_file);
 
 		start = clock();
-		fprintf(stderr, "master hereC\n");
 
 		// Reordering the array
 		int lg_n = 0;
@@ -296,7 +293,6 @@ int main(int argc, char* argv[]) {
 			if (i < rev)
 				swap(&a[i], &a[rev]);
 		}
-		fprintf(stderr, "master hereD\n");
 
 		end = clock();
 
@@ -312,10 +308,8 @@ int main(int argc, char* argv[]) {
 		int my_end = n / comm_sz;
 		int my_size = my_end;
 
-		fprintf(stderr, "master hereE\n");
 		// Scatter data
 		custom_scatter(my_rank, comm_sz, n, a);
-		fprintf(stderr, "master hereF\n");
 
 		end = clock();
 
