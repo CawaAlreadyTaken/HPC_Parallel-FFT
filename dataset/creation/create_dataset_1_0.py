@@ -1,6 +1,6 @@
 from random import randint
 
-LOG2_DEGREE = 10
+LOG2_DEGREE = 3
 MAX_COEFFICIENT_MODULO = 100
 
 OUTPUT_FILE = "../data/dataset_1_0.txt"
