@@ -1,6 +1,4 @@
 parallel_solver_0
 parallel_solver_1
-parallel_solver_0_no_scatter
-parallel_solver_1_no_scatter
 *.sh.o*
 *.sh.e*

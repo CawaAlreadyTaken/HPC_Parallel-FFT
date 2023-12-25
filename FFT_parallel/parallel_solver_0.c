@@ -188,6 +188,18 @@ void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, in
 	}
 }
 
+void custom_scatter(int my_rank, int comm_sz, int n, complex * a) {
+	int size = n / comm_sz;
+	if (my_rank == 0) {
+		int i;
+		for (i = 1; i < comm_sz; i++) {
+			MPI_Send(a + i * size, size, MPI_DOUBLE_COMPLEX, i, 0, MPI_COMM_WORLD);
+		}
+	} else {
+		MPI_Recv(a, size, MPI_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	}
+}
+
 int main(int argc, char* argv[]) {
 	int comm_sz;
 	int my_rank;
@@ -252,17 +264,16 @@ int main(int argc, char* argv[]) {
 		start = clock();
 
 		// Allocating memory for input array
-		complex *input_a = malloc(n * sizeof(complex));
 		complex *a = malloc(n * sizeof(complex));
 
-		end = clock();
-
+		fprintf(stderr, "master hereA\n");
 		// Reading input array
 		int i;
 		for (i = 0; i < n; i++) {
-			fscanf(input_file, "%lf", &input_a[i].real);
-			input_a[i].imag = 0;
+			fscanf(input_file, "%lf", &a[i].real);
+			a[i].imag = 0;
 		}
+		fprintf(stderr, "master hereB\n");
 
 		end = clock();
 
@@ -272,6 +283,7 @@ int main(int argc, char* argv[]) {
 		fclose(input_file);
 
 		start = clock();
+		fprintf(stderr, "master hereC\n");
 
 		// Reordering the array
 		int lg_n = 0;
@@ -282,8 +294,9 @@ int main(int argc, char* argv[]) {
 		for (i = 0; i < n; i++) {
 			int rev = reverse(i, lg_n);
 			if (i < rev)
-				swap(&input_a[i], &input_a[rev]);
+				swap(&a[i], &a[rev]);
 		}
+		fprintf(stderr, "master hereD\n");
 
 		end = clock();
 
@@ -299,8 +312,10 @@ int main(int argc, char* argv[]) {
 		int my_end = n / comm_sz;
 		int my_size = my_end;
 
+		fprintf(stderr, "master hereE\n");
 		// Scatter data
-		MPI_Scatter(input_a, my_size, MPI_DOUBLE_COMPLEX, a, my_size, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+		custom_scatter(my_rank, comm_sz, n, a);
+		fprintf(stderr, "master hereF\n");
 
 		end = clock();
 
@@ -347,7 +362,6 @@ int main(int argc, char* argv[]) {
 
 		// Free memory
 		free(a);
-		free(input_a);
 		free(data_to_send);
 	} else {
 		int n;
@@ -358,8 +372,8 @@ int main(int argc, char* argv[]) {
 		int my_size = my_end - my_start;
 
 		complex *a = malloc(n * sizeof(complex));
-		MPI_Scatter(a, my_size, MPI_DOUBLE_COMPLEX, &a[my_start], my_size, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
-
+		custom_scatter(my_rank, comm_sz, n, a);
+	
 		int lg_n = 0;
 		while ((1 << lg_n) < n)
 			lg_n++;

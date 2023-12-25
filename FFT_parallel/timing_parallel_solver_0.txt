@@ -1,6 +1,0 @@
-Time for allocating memory and reading input: 4.440000 seconds
-Time for reordering the input array: 5.880000 seconds
-Time for scattering the input array: 0.780000 seconds
-Time for calculating the parallel fft: 0.930000 seconds
-Time for gathering data: 1.630000 seconds
-Time for printing result: 58.800000 seconds
