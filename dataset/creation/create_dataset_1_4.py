@@ -16,6 +16,7 @@ with open(OUTPUT_FILE, 'w') as f:
     f.write("\n")
 
     # Genera e scrivi il secondo polinomio
+    f.write(str(degree) + "\n")
     for _ in range(degree):
         coefficient = randint(-MAX_COEFFICIENT_MODULO, MAX_COEFFICIENT_MODULO)
         f.write(str(coefficient) + " ")
