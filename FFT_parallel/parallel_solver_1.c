@@ -173,19 +173,11 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
             return to_send;
         }
         if ((my_rank / distance) % 2 == 0){
-            //printf("rank: %d, receiving from %d\n", my_rank, my_rank + distance);
             MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            //printf("rank: %d, received from %d\n", my_rank, my_rank + distance);
-            //printf("rank: %d, sending to %d\n", my_rank, my_rank + distance);
             MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank + distance, 0, MPI_COMM_WORLD);
-            //printf("rank: %d, sent to %d\n", my_rank, my_rank + distance);
         } else {
-            //printf("rank: %d, sending to %d\n", my_rank, my_rank - distance);
             MPI_Send(to_send, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD);
-            //printf("rank: %d, sent to %d\n", my_rank, my_rank - distance);
-            //printf("rank: %d, receiving from %d\n", my_rank, my_rank - distance);
             MPI_Recv(received, my_size, mpi_send_tuple_type, my_rank - distance, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            //printf("rank: %d, received from %d\n", my_rank, my_rank - distance);
         }
 
         int x;
@@ -279,7 +271,7 @@ int main(int argc, char** argv) {
         strcat(full_timings_file, timings_file_name);
         FILE *timings_file = fopen(full_timings_file, "w");
         // Opening file for reading input
-        const char *input_file_name = "../dataset/data/dataset_1_3.txt";
+        const char *input_file_name = "../dataset/data/dataset_1_4.txt";
         int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
         char *full_input_file = (char *)malloc(input_file_length);
         strcpy(full_input_file, argv[1]);
@@ -297,12 +289,17 @@ int main(int argc, char** argv) {
         }
         free(full_timings_file);
         free(full_input_file);
+	float t0;
+	float t1;
+	float t2;
+	float t3;
+	float t4;
 
+        start = clock();
         // Reading first input size
         int n0;
         fscanf(input_file, "%d", &n0);
 
-        start = clock();
 
         // Allocating memory for first input array
         complex *a = malloc(2 * n0 * sizeof(complex));
@@ -310,8 +307,6 @@ int main(int argc, char** argv) {
         // Reading first input array
         int i;
         for (i = 0; i < n0; i++) {
-	    if (i % 1000000 == 0)
-		fprintf(stderr, "%d\n", i);
             fscanf(input_file, "%lf", &a[i].real);
             a[i].imag = 0;
         }
@@ -322,9 +317,7 @@ int main(int argc, char** argv) {
 
         end = clock();
 
-        if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for allocating memory and reading first input: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
-        }
+        t0 = end-start;
 
         start = clock();
 
@@ -342,9 +335,7 @@ int main(int argc, char** argv) {
 
         end = clock();
 
-        if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for reordering the first input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
-        }
+        t1 = end-start;
 
         start = clock();
 
@@ -359,9 +350,7 @@ int main(int argc, char** argv) {
 
         end = clock();
 
-        if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for scattering the first input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
-        }
+        t2 = end-start;
 
         start = clock();
 
@@ -369,9 +358,8 @@ int main(int argc, char** argv) {
         send_tuple* data_to_send_a = parallel_fft(a, 2*n0, my_rank, comm_sz, lg_n, 0);
 
         end = clock();
-        if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for calculating the first parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
-        }
+
+	t3 = end-start;
 
         start = clock();
 
@@ -379,15 +367,13 @@ int main(int argc, char** argv) {
         gather_data(data_to_send_a, my_size_a, my_rank, a, 2*n0);
 
         end = clock();
-        if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for first gathering data: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
-        }
+        
+	t4 = end-start;
 
+        start = clock();
         // Reading second input size
         int n1;
         fscanf(input_file, "%d", &n1);
-
-        start = clock();
 
         // Allocating memory for second array
         complex *b = malloc(2 * n1 * sizeof(complex));
@@ -405,7 +391,7 @@ int main(int argc, char** argv) {
         end = clock();
 
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for allocating memory and reading second input: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for allocating memory and reading input: %f seconds\n", (double)(t0 + end - start) / CLOCKS_PER_SEC);
         }
         fclose(input_file);
 
@@ -425,7 +411,7 @@ int main(int argc, char** argv) {
         end = clock();
 
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for reordering the second input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for reordering the second input array: %f seconds\n", (double)(t1 + end - start) / CLOCKS_PER_SEC);
         }
 
         start = clock();
@@ -442,7 +428,7 @@ int main(int argc, char** argv) {
         end = clock();
 
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for scattering the second input array: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for scattering the second input array: %f seconds\n", (double)(t2 + end - start) / CLOCKS_PER_SEC);
         }
 
         start = clock();
@@ -452,7 +438,7 @@ int main(int argc, char** argv) {
 
         end = clock();
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for calculating the second parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for calculating the second parallel fft: %f seconds\n", (double)(t3 + end - start) / CLOCKS_PER_SEC);
         }
 
         start = clock();
@@ -462,7 +448,7 @@ int main(int argc, char** argv) {
 
         end = clock();
         if (PRINTING_TIME) {
-            fprintf(timings_file, "Time for gathering second data: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(timings_file, "Time for gathering second data: %f seconds\n", (double)(t4 + end - start) / CLOCKS_PER_SEC);
         }
 
         start = clock();
