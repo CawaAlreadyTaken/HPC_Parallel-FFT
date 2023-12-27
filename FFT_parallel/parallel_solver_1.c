@@ -90,24 +90,16 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
         lg_comm_sz++;
     }
 
-    // This is the number of cycles for which we don't need to exchange data
-    int no_exchange = lg_n - lg_comm_sz;
-
-    // This is a counter for the current cycle
-    int cycles = 1;
-
     // Allocate memory for the tuples we will send and receive
     send_tuple *to_send = malloc(my_size * sizeof(send_tuple));
     send_tuple *received = malloc(my_size * sizeof(send_tuple));
-
-    int exchange_cycle;
 
     // Execute the first log(n)-log(comm_sz) cycles, for which we don't need to exchange data
     int len;
     for (len = 2; len <= n; len <<= 1) {
         double ang = 2*M_PI / len * (invert ? -1 : 1);
         complex wlen = complex_from_polar(1.0, ang);
-        if (len > n/comm_sz) break;
+        if (len >= n/comm_sz) break;
         int i;
         for (i = my_start; i < my_end; i += len) {
             complex w = {1.0, 0.0};
@@ -120,12 +112,13 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
                 w = mul(w, wlen);
             }
         }
-        cycles++;
     }
 
+    // This is the log_2 of the distance meaningful for threads data exchange. This will increment each cycle
+    int distance_log = 0;
+
     // Execute the last log(comm_sz) cycles, for which we need to exchange data
-    for (len = 2*n/comm_sz; len <= n; len <<= 1) {
-        exchange_cycle = cycles - no_exchange;
+    for (len = n/comm_sz; len <= n; len <<= 1) {
         double ang = 2*M_PI / len * (invert ? -1 : 1);
         complex wlen = complex_from_polar(1.0, ang);
         int send_index = 0;
@@ -157,7 +150,7 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
         }
 
         // Distance between threads that will communicate with each other
-        int distance = pow(2, exchange_cycle);
+        int distance = pow(2, distance_log);
 
         // Last cycle we don't have anything to send to others
         if (len == n){
@@ -184,7 +177,7 @@ send_tuple * parallel_fft(complex *a, int n, int my_rank, int comm_sz, int lg_n,
         for (x=0; x<my_size; x++){
             a[received[x].index] = received[x].value;
         }
-        cycles++;
+	distance_log++;
     }
 
     free(received);
@@ -271,7 +264,7 @@ int main(int argc, char** argv) {
         strcat(full_timings_file, timings_file_name);
         FILE *timings_file = fopen(full_timings_file, "w");
         // Opening file for reading input
-        const char *input_file_name = "../dataset/data/dataset_1_4.txt";
+        const char *input_file_name = "../dataset/data/dataset_1_5.txt";
         int input_file_length = strlen(argv[1]) + strlen(input_file_name) + 1;
         char *full_input_file = (char *)malloc(input_file_length);
         strcpy(full_input_file, argv[1]);
@@ -322,11 +315,10 @@ int main(int argc, char** argv) {
         start = clock();
 
         // Reordering the array
-        int lg_n = 0;
-        while ((1 << lg_n) < 2*n0)
+        long int lg_n = 0;
+        while ((1 << lg_n) < (long int)(2*n0))
             lg_n++;
 
-        // TODO: check data dependencies
         for (i = 0; i < 2*n0; i++) {
 	    int rev = reverse(i, lg_n);
             if (i < rev)
@@ -399,7 +391,7 @@ int main(int argc, char** argv) {
 
         // Reordering the second array
         lg_n = 0;
-        while ((1 << lg_n) < 2*n1)
+        while ((1 << lg_n) < (long int)(2*n1))
             lg_n++;
 
         for (i = 0; i < 2*n1; i++) {
@@ -492,8 +484,8 @@ int main(int argc, char** argv) {
         complex *a = malloc(2 * n0 * sizeof(complex));
 	custom_scatter(my_rank, comm_sz, 2*n0, a);
 
-        int lg_n = 0;
-        while ((1 << lg_n) < 2*n0)
+        long int lg_n = 0;
+        while ((1 << lg_n) < (long int)(2*n0))
             lg_n++;
 
         send_tuple* data_to_send_a = parallel_fft(a, 2*n0, my_rank, comm_sz, lg_n, 0);
@@ -512,7 +504,7 @@ int main(int argc, char** argv) {
 	custom_scatter(my_rank, comm_sz, 2*n1, b);
 
         lg_n = 0;
-        while ((1 << lg_n) < 2*n1)
+        while ((1 << lg_n) < (long int)(2*n1))
             lg_n++;
 
         send_tuple* data_to_send_b = parallel_fft(b, 2*n1, my_rank, comm_sz, lg_n, 0);
