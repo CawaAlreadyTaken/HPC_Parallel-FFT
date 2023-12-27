@@ -6,6 +6,8 @@
 #include <time.h>
 #include <mpi.h>
 
+# include <omp.h>
+
 const int PRINTING_OUTPUT = 0;
 const int PRINTING_TIME = 1;
 MPI_Datatype mpi_send_tuple_type;
@@ -173,6 +175,8 @@ void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, in
 		send_tuple* final_receive = malloc(sizeof(send_tuple) * n);
 		MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
 		int x;
+
+		#pragma omp parallel for
 		for (x=0; x<n; x++){
 			a[final_receive[x].index] = final_receive[x].value;
 		}
