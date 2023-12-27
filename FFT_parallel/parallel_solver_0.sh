@@ -2,7 +2,7 @@
 
 #PBS -l select=1:ncpus=1:mem=4gb -l place=pack:excl
 
-#PBS -l walltime=0:10:00
+#PBS -l walltime=0:30:00
 
 #PBS -q short_cpuQ
 
