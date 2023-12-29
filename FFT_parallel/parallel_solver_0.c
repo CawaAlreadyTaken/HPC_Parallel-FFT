@@ -301,6 +301,7 @@ int main(int argc, char* argv[]) {
 		// TODO: check data dependencies
 		#pragma omp parallel for num_threads(n) shared(a)
 		for (i = 0; i < n; i++) {
+			printf("thread id: %d \n", omp_get_thread_num()); //print thread id to check if oprnmp works
 			int rev = reverse(i, lg_n);
 			if (i < rev)
 				swap(&a[i], &a[rev]);
