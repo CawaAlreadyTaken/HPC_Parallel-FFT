@@ -177,7 +177,7 @@ void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, in
 		MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
 		int x;
 
-		#pragma omp parallel for
+		#pragma omp parallel for num_threads(n)
 		for (x=0; x<n; x++){
 			a[final_receive[x].index] = final_receive[x].value;
 		}
