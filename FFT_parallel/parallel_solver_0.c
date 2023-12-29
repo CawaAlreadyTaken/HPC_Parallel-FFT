@@ -6,7 +6,12 @@
 #include <time.h>
 #include <mpi.h>
 
-# include <omp.h>
+#ifdef _OPENMP
+    #include <omp.h>
+#else
+    #define omp_get_num_threads() 0
+    #define omp_get_thread_num() 0
+#endif
 
 const int PRINTING_OUTPUT = 0;
 const int PRINTING_TIME = 1;
@@ -177,7 +182,7 @@ void gather_data(send_tuple * to_send, int my_size, int my_rank, complex * a, in
 		MPI_Gather(to_send, my_size, mpi_send_tuple_type, final_receive, my_size, mpi_send_tuple_type, 0, MPI_COMM_WORLD);
 		int x;
 
-		#pragma omp parallel for num_threads(n)
+		//#pragma omp parallel for num_threads(n)
 		for (x=0; x<n; x++){
 			a[final_receive[x].index] = final_receive[x].value;
 		}
@@ -294,7 +299,7 @@ int main(int argc, char* argv[]) {
 			lg_n++;
 
 		// TODO: check data dependencies
-		#pragma omp parallel for num_threads(n) private(rev) shared(a)
+		//#pragma omp parallel for num_threads(n) private(rev) shared(a)
 		for (i = 0; i < n; i++) {
 			int rev = reverse(i, lg_n);
 			if (i < rev)
