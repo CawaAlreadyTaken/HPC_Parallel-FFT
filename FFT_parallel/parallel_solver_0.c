@@ -32,6 +32,7 @@ int reverse(int num, int lg_n) {
 	int i;
 	#pragma omp parallel for num_threads(lg_n) reduction (|:res)
 	for (i = 0; i < lg_n; i++) {
+		printf("I'm thrad num %d /n", omp_get_thread_num());
 		if (num & (1 << i))
 			res |= 1 << (lg_n - 1 - i);
 	}
