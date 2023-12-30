@@ -28,7 +28,7 @@ typedef struct {
 } send_tuple;
 
 int reverse(int num, int lg_n, int res) {
-	//int res = 0;
+	int res = 0;
 	int i;
 	//#pragma omp parallel for reduction (|:res)
 	for (i = 0; i < lg_n; i++) {
@@ -301,7 +301,6 @@ int main(int argc, char* argv[]) {
 			lg_n++;
 
 		// TODO: check data dependencies
-		int res = 0;
 		printf("%d", n);
 		//#pragma omp for //num_threads(4) shared(a)
 		for (i = 0; i < n; i++) {
