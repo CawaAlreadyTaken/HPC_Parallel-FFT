@@ -27,17 +27,17 @@ typedef struct {
 	int index;
 } send_tuple;
 
-int reverse(int num, int lg_n, int *res) {
+int reverse(int num, int lg_n, int res) {
 	//int res = 0;
 	int i;
-	#pragma omp for reduction (|:*res)
+	#pragma omp for reduction (|:res)
 	for (i = 0; i < lg_n; i++) {
 		printf("I'm thrad num %d \n", omp_get_thread_num());
 		if (num & (1 << i))
 			*res |= 1 << (lg_n - 1 - i);
 	}
-	printf("\n %d \n", *res);
-	return *res;
+	printf("\n %d \n", res);
+	return res;
 }
 
 void swap(complex *a, complex *b) {
@@ -304,7 +304,7 @@ int main(int argc, char* argv[]) {
 		//#pragma omp for //num_threads(4) shared(a)
 		int res = 0;
 		for (i = 0; i < n; i++) {
-			int rev = reverse(i, lg_n, &res);
+			int rev = reverse(i, lg_n, res);
 			//printf("thread id: %d", omp_get_thread_num()); //print thread id to check if oprnmp works
 			//printf("calculated rev\n");
 			if (i < rev)
