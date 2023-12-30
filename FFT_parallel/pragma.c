@@ -23,7 +23,7 @@ int main(){
     int i;
     if (my_rank == 0)
     {
-        #pragma parallel for num_threads(5)
+        #pragma omp parallel for num_threads(5)
         for (i=0; i<5; i++){
             printf("thread id: %d \n", omp_get_thread_num()); //print thread id to check if oprnmp works
         }
