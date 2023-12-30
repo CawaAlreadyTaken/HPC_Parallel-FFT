@@ -30,7 +30,7 @@ typedef struct {
 int reverse(int num, int lg_n) {
 	int res = 0;
 	int i;
-	//#pragma omp parallel for num_threads(lg_n) reduction (|:res)
+	#pragma omp parallel for num_threads(lg_n) reduction (|:res)
 	for (i = 0; i < lg_n; i++) {
 		if (num & (1 << i))
 			res |= 1 << (lg_n - 1 - i);
@@ -299,16 +299,16 @@ int main(int argc, char* argv[]) {
 			lg_n++;
 
 		// TODO: check data dependencies
-		#pragma omp for //num_threads(4) shared(a)
+		//#pragma omp for //num_threads(4) shared(a)
 		for (i = 0; i < n; i++) {
 			int rev = reverse(i, lg_n);
-			printf("thread id: %d", omp_get_thread_num()); //print thread id to check if oprnmp works
-			printf("calculated rev\n");
+			//printf("thread id: %d", omp_get_thread_num()); //print thread id to check if oprnmp works
+			//printf("calculated rev\n");
 			if (i < rev)
 				swap(&a[i], &a[rev]);
-				printf("SWAPPING");
+				//printf("SWAPPING");
 		}
-		printf("END_PRAGMA \n");
+		//printf("END_PRAGMA \n");
 
 		end = clock();
 
