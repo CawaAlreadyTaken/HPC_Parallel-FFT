@@ -30,7 +30,7 @@ typedef struct {
 int reverse(int num, int lg_n, int *res) {
 	//int res = 0;
 	int i;
-	#pragma omp for reduction (|:res)
+	#pragma omp for reduction (|:*res)
 	for (i = 0; i < lg_n; i++) {
 		printf("I'm thrad num %d \n", omp_get_thread_num());
 		if (num & (1 << i))
