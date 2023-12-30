@@ -302,7 +302,8 @@ int main(int argc, char* argv[]) {
 		#pragma omp parallel for num_threads(omp_get_num_procs()) shared(a)
 		for (i = 0; i < n; i++) {
 			int rev = reverse(i, lg_n);
-			printf("thread id: %d calculated rev\n", omp_get_thread_num()); //print thread id to check if oprnmp works
+			printf("thread id: %d", omp_get_thread_num()); //print thread id to check if oprnmp works
+			printf("calculated rev\n");
 			if (i < rev)
 				swap(&a[i], &a[rev]);
 				printf("SWAPPING");
