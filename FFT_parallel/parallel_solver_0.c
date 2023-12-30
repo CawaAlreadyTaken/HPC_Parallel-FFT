@@ -30,9 +30,9 @@ typedef struct {
 int reverse(int num, int lg_n) {
 	int res = 0;
 	int i;
-	//#pragma omp parallel for reduction (|:res)
+	#pragma omp parallel for reduction (|:res)
 	for (i = 0; i < lg_n; i++) {
-		//printf("I'm thrad num %d \n", omp_get_thread_num());
+		printf("I'm thrad num %d \n", omp_get_thread_num());
 		if (num & (1 << i))
 			res |= 1 << (lg_n - 1 - i);
 	}
@@ -346,7 +346,6 @@ int main(int argc, char* argv[]) {
 		if (PRINTING_TIME) {
 			fprintf(timings_file, "Time for calculating the parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
-	printf("HEREQQ \n");
 		start = clock();
 
 		// Gather result in the root node
