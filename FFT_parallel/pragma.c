@@ -15,7 +15,6 @@
 
 int main(){
     int i;
-    #pragma omp master
     {
         #pragma omp for
         for (i=0; i<5; i++){
