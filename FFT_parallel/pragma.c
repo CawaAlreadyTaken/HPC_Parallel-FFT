@@ -28,7 +28,7 @@ int main(){
             printf("thread id: %d \n", omp_get_thread_num()); //print thread id to check if oprnmp works
         }
     }else{
-        printf("I'm not rank 0 \n")
+        printf("I'm not rank 0 \n");
     }
     return 0;
 }
