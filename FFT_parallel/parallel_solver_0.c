@@ -27,10 +27,10 @@ typedef struct {
 	int index;
 } send_tuple;
 
-int reverse(int num, int lg_n) {
-	int res = 0;
+int reverse(int num, int lg_n, int *res) {
+	//int res = 0;
 	int i;
-	#pragma omp for reduction shared(res) (|:res)
+	#pragma omp for reduction (|:res)
 	for (i = 0; i < lg_n; i++) {
 		printf("I'm thrad num %d \n", omp_get_thread_num());
 		if (num & (1 << i))
@@ -302,8 +302,9 @@ int main(int argc, char* argv[]) {
 
 		// TODO: check data dependencies
 		//#pragma omp for //num_threads(4) shared(a)
+		int res = 0;
 		for (i = 0; i < n; i++) {
-			int rev = reverse(i, lg_n);
+			int rev = reverse(i, lg_n, &res);
 			//printf("thread id: %d", omp_get_thread_num()); //print thread id to check if oprnmp works
 			//printf("calculated rev\n");
 			if (i < rev)
