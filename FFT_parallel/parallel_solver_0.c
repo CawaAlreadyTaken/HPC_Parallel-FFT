@@ -346,7 +346,7 @@ int main(int argc, char* argv[]) {
 		if (PRINTING_TIME) {
 			fprintf(timings_file, "Time for calculating the parallel fft: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 		}
-
+	printf("HEREQQ \n");
 		start = clock();
 
 		// Gather result in the root node
