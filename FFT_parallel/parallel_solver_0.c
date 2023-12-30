@@ -34,10 +34,10 @@ int reverse(int num, int lg_n, int *res) {
 	for (i = 0; i < lg_n; i++) {
 		printf("I'm thrad num %d \n", omp_get_thread_num());
 		if (num & (1 << i))
-			res |= 1 << (lg_n - 1 - i);
+			*res |= 1 << (lg_n - 1 - i);
 	}
-	printf("\n %d \n", res);
-	return res;
+	printf("\n %d \n", *res);
+	return *res;
 }
 
 void swap(complex *a, complex *b) {
