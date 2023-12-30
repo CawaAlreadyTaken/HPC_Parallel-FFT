@@ -299,7 +299,7 @@ int main(int argc, char* argv[]) {
 			lg_n++;
 
 		// TODO: check data dependencies
-		#pragma omp for num_threads(4) shared(a)
+		#pragma omp for //num_threads(4) shared(a)
 		for (i = 0; i < n; i++) {
 			int rev = reverse(i, lg_n);
 			printf("thread id: %d", omp_get_thread_num()); //print thread id to check if oprnmp works
