@@ -305,6 +305,7 @@ int main(int argc, char* argv[]) {
 			int rev = reverse(i, lg_n);
 			if (i < rev)
 				swap(&a[i], &a[rev]);
+				printf("SWAPPING");
 		}
 		printf("END_PRAGMA \n");
 
