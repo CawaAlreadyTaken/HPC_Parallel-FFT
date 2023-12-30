@@ -17,9 +17,9 @@ int main(){
     int i;
     #pragma omp master
     {
-        #pragma omp parallel for num_threads(5)
+        #pragma omp for num_threads(5)
         for (i=0; i<5; i++){
-            printf("thread id: %d /n", omp_get_thread_num()); //print thread id to check if oprnmp works
+            printf("thread id: %d \n", omp_get_thread_num()); //print thread id to check if oprnmp works
         }
     }
     return 0;
