@@ -27,7 +27,7 @@ typedef struct {
 	int index;
 } send_tuple;
 
-int reverse(int num, int lg_n, int res) {
+int reverse(int num, int lg_n) {
 	int res = 0;
 	int i;
 	//#pragma omp parallel for reduction (|:res)
@@ -304,7 +304,7 @@ int main(int argc, char* argv[]) {
 		printf("%d", n);
 		//#pragma omp for //num_threads(4) shared(a)
 		for (i = 0; i < n; i++) {
-			int rev = reverse(i, lg_n, res);
+			int rev = reverse(i, lg_n);
 			//printf("thread id: %d", omp_get_thread_num()); //print thread id to check if oprnmp works
 			//printf("calculated rev\n");
 			if (i < rev)
