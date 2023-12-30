@@ -310,6 +310,7 @@ int main(int argc, char* argv[]) {
 			if (i < rev && rev < n){
 				swap(&a[i], &a[rev]);
 				//printf("SWAPPING");
+			}
 		}
 		//printf("END_PRAGMA \n");
 		printf("end_swapping \n");
