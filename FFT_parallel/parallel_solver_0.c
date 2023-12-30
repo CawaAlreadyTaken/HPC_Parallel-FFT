@@ -307,7 +307,7 @@ int main(int argc, char* argv[]) {
 			int rev = reverse(i, lg_n);
 			//printf("thread id: %d", omp_get_thread_num()); //print thread id to check if oprnmp works
 			//printf("calculated rev\n");
-			if (i < rev)
+			if (i < rev && rev < n){
 				swap(&a[i], &a[rev]);
 				//printf("SWAPPING");
 		}
